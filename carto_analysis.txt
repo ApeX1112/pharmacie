@@ -1,0 +1,60 @@
+Columns: ['Unnamed: 0', 'Unnamed: 1', 'Longueur (en cm)', 'Largeur (en cm)', 'hauteur (en cm)', "Nombre d'emplacements picking", "Nombre d'emplacements réserve", 'Détail', 'Unnamed: 8']
+First 5 rows:
+[
+  {
+    "Unnamed: 0":"MPP. A",
+    "Unnamed: 1":"impair",
+    "Longueur (en cm)":1160.0,
+    "Largeur (en cm)":110.0,
+    "hauteur (en cm)":380.0,
+    "Nombre d'emplacements picking":12.0,
+    "Nombre d'emplacements r\u00e9serve":9.0,
+    "D\u00e9tail":null,
+    "Unnamed: 8":null
+  },
+  {
+    "Unnamed: 0":null,
+    "Unnamed: 1":"pair",
+    "Longueur (en cm)":580.0,
+    "Largeur (en cm)":110.0,
+    "hauteur (en cm)":380.0,
+    "Nombre d'emplacements picking":7.0,
+    "Nombre d'emplacements r\u00e9serve":6.0,
+    "D\u00e9tail":null,
+    "Unnamed: 8":null
+  },
+  {
+    "Unnamed: 0":"MPP. B",
+    "Unnamed: 1":null,
+    "Longueur (en cm)":870.0,
+    "Largeur (en cm)":110.0,
+    "hauteur (en cm)":380.0,
+    "Nombre d'emplacements picking":9.0,
+    "Nombre d'emplacements r\u00e9serve":8.0,
+    "D\u00e9tail":null,
+    "Unnamed: 8":null
+  },
+  {
+    "Unnamed: 0":"MPP. C",
+    "Unnamed: 1":"impair",
+    "Longueur (en cm)":1160.0,
+    "Largeur (en cm)":110.0,
+    "hauteur (en cm)":380.0,
+    "Nombre d'emplacements picking":12.0,
+    "Nombre d'emplacements r\u00e9serve":11.0,
+    "D\u00e9tail":null,
+    "Unnamed: 8":null
+  },
+  {
+    "Unnamed: 0":null,
+    "Unnamed: 1":"pair",
+    "Longueur (en cm)":1160.0,
+    "Largeur (en cm)":110.0,
+    "hauteur (en cm)":380.0,
+    "Nombre d'emplacements picking":12.0,
+    "Nombre d'emplacements r\u00e9serve":9.0,
+    "D\u00e9tail":null,
+    "Unnamed: 8":null
+  }
+]
+Potential coordinate columns: []
