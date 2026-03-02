@@ -98,9 +98,9 @@ const sharedGeo = {
 
 // Shared materials
 const sharedMat = {
-    metalPost: new THREE.MeshStandardMaterial({ color: '#7a8999', metalness: 0.7, roughness: 0.3 }),
-    shelf: new THREE.MeshStandardMaterial({ color: '#94a3b8', metalness: 0.3, roughness: 0.5 }),
-    floorMat: new THREE.MeshStandardMaterial({ color: '#dfe3e8', roughness: 0.85 }),
+    metalPost: new THREE.MeshStandardMaterial({ color: '#8892b0', metalness: 0.8, roughness: 0.2 }), // Clean metallic gray
+    shelf: new THREE.MeshStandardMaterial({ color: '#a8b2d1', metalness: 0.6, roughness: 0.4 }),     // Lighter metallic gray
+    floorMat: new THREE.MeshStandardMaterial({ color: '#9ca3af', roughness: 0.9, metalness: 0.1 }),
     graphLine: new THREE.LineBasicMaterial({ color: '#888888', transparent: true, opacity: 0.15 }),
     graphNode: new THREE.MeshBasicMaterial({ color: '#aaaaaa', transparent: true, opacity: 0.2 }),
     skinMat: new THREE.MeshStandardMaterial({ color: '#f5d0a9', roughness: 0.8 }),
@@ -149,11 +149,16 @@ const RackMesh = React.memo(({ zone, isHovered, onHover, onUnhover }) => {
     const isFlat = zone.type === 'workstation' || zone.type === 'inbound' || zone.type === 'outbound';
 
     // Stock material per zone
-    const stockMat = useMemo(() => new THREE.MeshStandardMaterial({
-        color: color,
-        roughness: 0.9,
-        metalness: 0.1,
-    }), [color]);
+    const stockMat = useMemo(() => {
+        // Mute the zone color slightly to simulate realistic matte plastic bins
+        const baseColor = new THREE.Color(color);
+        const plasticColor = baseColor.lerp(new THREE.Color(0xffffff), 0.15);
+        return new THREE.MeshStandardMaterial({
+            color: plasticColor,
+            roughness: 0.7,
+            metalness: 0.15,
+        });
+    }, [color]);
 
     const hoverMat = useMemo(() => new THREE.MeshStandardMaterial({
         color: '#ffffff',
@@ -277,7 +282,14 @@ const AgentMesh = React.memo(({ agent }) => {
     const isStorekeeper = agent.type === 'Storekeeper';
     const isController = agent.type === 'Controller';
     const agentColor = isStorekeeper ? '#3b82f6' : isController ? '#10b981' : '#ef4444';
-    const [px, , pz] = to3D(agent.x, agent.y);
+
+    // Animation refs
+    const groupRef = useRef();
+    const leftLegRef = useRef();
+    const rightLegRef = useRef();
+    const upperBodyRef = useRef();
+
+    const [initialX, , initialZ] = to3D(agent.x, agent.y);
 
     const bodyMat = useMemo(() => new THREE.MeshStandardMaterial({
         color: agentColor,
@@ -299,27 +311,76 @@ const AgentMesh = React.memo(({ agent }) => {
         side: THREE.DoubleSide,
     }), [agentColor]);
 
+    // Animate walk and rotation
+    useFrame((state) => {
+        if (!groupRef.current) return;
+
+        const [targetX, , targetZ] = to3D(agent.x, agent.y);
+
+        // Interpolate position for smooth movement
+        groupRef.current.position.x = THREE.MathUtils.lerp(groupRef.current.position.x, targetX, 0.15);
+        groupRef.current.position.z = THREE.MathUtils.lerp(groupRef.current.position.z, targetZ, 0.15);
+
+        const dx = targetX - groupRef.current.position.x;
+        const dz = targetZ - groupRef.current.position.z;
+        const velocity = Math.sqrt(dx * dx + dz * dz);
+
+        if (velocity > 0.02) {
+            // Rotate towards movement direction
+            const angle = Math.atan2(dx, dz);
+            let rotY = groupRef.current.rotation.y;
+            // Shortest path wrapping
+            while (angle - rotY > Math.PI) rotY += Math.PI * 2;
+            while (rotY - angle > Math.PI) rotY -= Math.PI * 2;
+            groupRef.current.rotation.y = THREE.MathUtils.lerp(rotY, angle, 0.2);
+
+            // Walk animation
+            const t = state.clock.elapsedTime * 15;
+            if (leftLegRef.current && rightLegRef.current && upperBodyRef.current) {
+                leftLegRef.current.rotation.x = Math.sin(t) * 0.6;
+                rightLegRef.current.rotation.x = Math.sin(t + Math.PI) * 0.6;
+                upperBodyRef.current.position.y = Math.abs(Math.sin(t * 2)) * 0.05;
+            }
+        } else {
+            // Idle stance reset
+            if (leftLegRef.current && rightLegRef.current && upperBodyRef.current) {
+                leftLegRef.current.rotation.x = THREE.MathUtils.lerp(leftLegRef.current.rotation.x, 0, 0.1);
+                rightLegRef.current.rotation.x = THREE.MathUtils.lerp(rightLegRef.current.rotation.x, 0, 0.1);
+                upperBodyRef.current.position.y = THREE.MathUtils.lerp(upperBodyRef.current.position.y, 0, 0.1);
+            }
+        }
+    });
+
     return (
-        <group position={[px, 0, pz]}>
-            {/* Legs */}
-            <mesh castShadow receiveShadow geometry={sharedGeo.legs} material={bodyMat} position={[-0.07, 0.175, 0]} />
-            <mesh castShadow receiveShadow geometry={sharedGeo.legs} material={bodyMat} position={[0.07, 0.175, 0]} />
-
-            {/* Body / Torso (vest) */}
-            <mesh castShadow receiveShadow geometry={sharedGeo.body} material={vestMat} position={[0, 0.6, 0]} />
-
-            {/* Head */}
-            <mesh castShadow receiveShadow geometry={sharedGeo.head} material={sharedMat.skinMat} position={[0, 0.95, 0]} />
-
-            {/* Hard hat (small hemisphere on head) */}
-            <mesh castShadow receiveShadow position={[0, 1.05, 0]}>
-                <sphereGeometry args={[0.13, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2]} />
-                <meshStandardMaterial color={isController ? '#10b981' : isStorekeeper ? '#fbbf24' : '#fb923c'} roughness={0.4} metalness={0.1} />
-            </mesh>
-
+        <group ref={groupRef} position={[initialX, 0, initialZ]}>
             {/* Ground ring indicator */}
             <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}
                 geometry={sharedGeo.ring} material={ringMat} />
+
+            {/* Left Leg Pivot */}
+            <group ref={leftLegRef} position={[-0.07, 0.35, 0]}>
+                <mesh castShadow receiveShadow geometry={sharedGeo.legs} material={bodyMat} position={[0, -0.175, 0]} />
+            </group>
+
+            {/* Right Leg Pivot */}
+            <group ref={rightLegRef} position={[0.07, 0.35, 0]}>
+                <mesh castShadow receiveShadow geometry={sharedGeo.legs} material={bodyMat} position={[0, -0.175, 0]} />
+            </group>
+
+            {/* Upper body (bobs up and down) */}
+            <group ref={upperBodyRef}>
+                {/* Body / Torso (vest) */}
+                <mesh castShadow receiveShadow geometry={sharedGeo.body} material={vestMat} position={[0, 0.6, 0]} />
+
+                {/* Head */}
+                <mesh castShadow receiveShadow geometry={sharedGeo.head} material={sharedMat.skinMat} position={[0, 0.95, 0]} />
+
+                {/* Hard hat */}
+                <mesh castShadow receiveShadow position={[0, 1.05, 0]}>
+                    <sphereGeometry args={[0.13, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2]} />
+                    <meshStandardMaterial color={isController ? '#10b981' : isStorekeeper ? '#fbbf24' : '#fb923c'} roughness={0.4} metalness={0.1} />
+                </mesh>
+            </group>
 
             {/* ID label */}
             <TextSprite
@@ -379,7 +440,7 @@ const Floor = React.memo(() => {
             {/* Concrete floor */}
             <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]}>
                 <planeGeometry args={[floorW, floorH]} />
-                <meshStandardMaterial color="#c8ced4" roughness={0.9} />
+                <meshStandardMaterial color="#b3b8c2" roughness={0.9} metalness={0.05} />
             </mesh>
             {/* Border */}
             <lineSegments rotation={[-Math.PI / 2, 0, 0]} geometry={edgesGeo} material={sharedMat.floorBorder} />
@@ -456,7 +517,7 @@ const Conveyor3D = React.memo(({ zone, conveyorQueue }) => {
     // Animate rollers spinning
     useFrame(() => {
         rollersRef.current.forEach(r => {
-            if (r) r.rotation.z += 0.08;
+            if (r) r.rotation.y -= 0.15; // Rotate around local Y (which points along world Z) to roll along X
         });
     });
 
@@ -524,12 +585,12 @@ const SceneContent = ({ onHover, onUnhover, hoveredZoneId, hoveredZone, setToolt
     return (
         <>
             {/* Lighting */}
-            <ambientLight intensity={0.5} color="#e8ecf0" />
-            <directionalLight castShadow position={[25, 35, 15]} intensity={0.9} color="#fff5e0"
-                shadow-mapSize-width={2048} shadow-mapSize-height={2048}
+            <ambientLight intensity={0.4} color="#e8ecf0" />
+            <directionalLight castShadow position={[25, 35, 15]} intensity={1.1} color="#fffaf0"
+                shadow-mapSize-width={2048} shadow-mapSize-height={2048} shadow-bias={-0.0005}
                 shadow-camera-far={100} shadow-camera-left={-40} shadow-camera-right={40} shadow-camera-top={40} shadow-camera-bottom={-40} />
-            <directionalLight position={[-15, 20, -10]} intensity={0.3} color="#c8d8ff" />
-            <hemisphereLight args={['#b0c4de', '#7a8999', 0.3]} />
+            <directionalLight position={[-15, 20, -10]} intensity={0.4} color="#e0e8ff" />
+            <hemisphereLight args={['#dce6f2', '#8291a1', 0.4]} />
 
             <Floor />
             <GraphOverlay nodes={config.nodes} edges={config.edges} />
