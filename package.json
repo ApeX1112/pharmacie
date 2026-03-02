@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@react-three/fiber": "^9.5.0",
     "@tailwindcss/postcss": "^4.1.18",
     "framer-motion": "^12.34.0",
     "lucide-react": "^0.564.0",
@@ -18,6 +19,7 @@
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.13.0",
     "recharts": "^3.7.0",
+    "three": "^0.183.2",
     "xlsx": "^0.18.5",
     "zustand": "^5.0.11"
   },
