@@ -34,6 +34,7 @@ function getRackHeight(zone) {
         case 'workstation': return 1.0;
         case 'inbound': return 0.8;
         case 'outbound': return 0.8;
+        case 'conveyor': return 0.3;
         default: return 1.5;
     }
 }
@@ -42,6 +43,7 @@ function getShelfCount(zone) {
     switch (zone.type) {
         case 'storage': return 4;
         case 'picking': return 3;
+        case 'conveyor': return 0;
         default: return 2;
     }
 }
@@ -144,13 +146,13 @@ const RackMesh = React.memo(({ zone, isHovered, onHover, onUnhover }) => {
 
     // For very small zones, skip detailed rack → just render a simple box
     const isSmall = w < 0.8 || d < 0.8;
+    const isFlat = zone.type === 'workstation' || zone.type === 'inbound' || zone.type === 'outbound';
 
     // Stock material per zone
     const stockMat = useMemo(() => new THREE.MeshStandardMaterial({
         color: color,
-        transparent: true,
-        opacity: 0.85,
-        roughness: 0.6,
+        roughness: 0.9,
+        metalness: 0.1,
     }), [color]);
 
     const hoverMat = useMemo(() => new THREE.MeshStandardMaterial({
@@ -172,22 +174,24 @@ const RackMesh = React.memo(({ zone, isHovered, onHover, onUnhover }) => {
     // Determine how many shelves have stock (bottom-up fill)
     const filledShelves = Math.ceil(fillRatio * shelfCount);
 
-    if (isSmall) {
-        // Simple box for tiny zones
+    if (isSmall || isFlat) {
+        // Simple flat zone for workstations/small zones
         return (
             <group position={[cx, 0, cz]}>
-                <mesh position={[0, h / 2, 0]}
+                {/* Floor marker */}
+                <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}
                     onPointerOver={(e) => { e.stopPropagation(); onHover(zone); }}
                     onPointerOut={(e) => { e.stopPropagation(); onUnhover(); }}
                 >
-                    <boxGeometry args={[w, h, d]} />
-                    <meshStandardMaterial color={color} transparent opacity={0.6} />
+                    <planeGeometry args={[w, d]} />
+                    <meshStandardMaterial color={color} transparent opacity={isFlat ? 0.15 : 0.6} side={THREE.DoubleSide} />
                 </mesh>
-                <lineSegments position={[0, h / 2, 0]}>
-                    <edgesGeometry args={[new THREE.BoxGeometry(w, h, d)]} />
-                    <lineBasicMaterial color={isHovered ? '#00ffff' : '#666'} />
+                {/* Border */}
+                <lineSegments rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, 0]}>
+                    <edgesGeometry args={[new THREE.PlaneGeometry(w, d)]} />
+                    <lineBasicMaterial color={isHovered ? '#00ffff' : '#888'} />
                 </lineSegments>
-                <TextSprite text={zone.name} position={[0, h + 0.4, 0]} scale={0.9} />
+                <TextSprite text={zone.name} position={[0, 0.5, 0]} scale={0.9} />
             </group>
         );
     }
@@ -218,13 +222,13 @@ const RackMesh = React.memo(({ zone, isHovered, onHover, onUnhover }) => {
 
             {/* Vertical posts */}
             {postPositions.map((pos, i) => (
-                <mesh key={`post-${i}`} geometry={sharedGeo.post} material={sharedMat.metalPost}
+                <mesh castShadow receiveShadow key={`post-${i}`} geometry={sharedGeo.post} material={sharedMat.metalPost}
                     position={[pos[0], h / 2, pos[2]]} scale={[1, h, 1]} />
             ))}
 
             {/* Horizontal shelves */}
             {shelves.map((sy, i) => (
-                <mesh key={`shelf-${i}`} geometry={sharedGeo.shelf} material={sharedMat.shelf}
+                <mesh castShadow receiveShadow key={`shelf-${i}`} geometry={sharedGeo.shelf} material={sharedMat.shelf}
                     position={[0, sy, 0]} scale={[w, 1, d]} />
             ))}
 
@@ -234,19 +238,24 @@ const RackMesh = React.memo(({ zone, isHovered, onHover, onUnhover }) => {
                 <meshStandardMaterial color="#8896a5" transparent opacity={0.08} side={THREE.DoubleSide} />
             </mesh>
 
-            {/* Stock boxes on shelves */}
+            {/* Stock boxes on shelves (multiple individual boxes for realism) */}
             {shelves.slice(0, -1).map((sy, i) => {
                 if (i >= filledShelves) return null;
                 const shelfHeight = h / shelfCount;
-                const boxH = shelfHeight * 0.6;
-                const boxW = w * 0.8;
-                const boxD = d * 0.75;
-                return (
-                    <mesh key={`stock-${i}`} geometry={sharedGeo.stockBox} material={stockMat}
-                        position={[0, sy + boxH / 2 + 0.03, 0]}
+                const boxH = shelfHeight * 0.7;
+
+                // Calculate how many distinct boxes we can fit side-by-side
+                const numBoxes = Math.max(1, Math.floor(w / 0.8));
+                const totalPadding = 0.05 * (numBoxes + 1);
+                const boxW = (w * 0.9 - totalPadding) / numBoxes;
+                const boxD = d * 0.8;
+
+                return Array.from({ length: numBoxes }).map((_, c) => (
+                    <mesh castShadow receiveShadow key={`stock-${i}-${c}`} geometry={sharedGeo.stockBox} material={stockMat}
+                        position={[-w * 0.45 + 0.05 + boxW / 2 + c * (boxW + 0.05), sy + boxH / 2 + 0.03, 0]}
                         scale={[boxW, boxH, boxD]}
                     />
-                );
+                ));
             })}
 
             {/* Highlight border on hover */}
@@ -266,7 +275,8 @@ const RackMesh = React.memo(({ zone, isHovered, onHover, onUnhover }) => {
 // ---- AGENT (Human-like figure) ----
 const AgentMesh = React.memo(({ agent }) => {
     const isStorekeeper = agent.type === 'Storekeeper';
-    const agentColor = isStorekeeper ? '#3b82f6' : '#ef4444';
+    const isController = agent.type === 'Controller';
+    const agentColor = isStorekeeper ? '#3b82f6' : isController ? '#10b981' : '#ef4444';
     const [px, , pz] = to3D(agent.x, agent.y);
 
     const bodyMat = useMemo(() => new THREE.MeshStandardMaterial({
@@ -276,11 +286,11 @@ const AgentMesh = React.memo(({ agent }) => {
     }), [agentColor]);
 
     const vestMat = useMemo(() => new THREE.MeshStandardMaterial({
-        color: isStorekeeper ? '#1d4ed8' : '#dc2626',
+        color: isStorekeeper ? '#1d4ed8' : isController ? '#059669' : '#dc2626',
         emissive: agentColor,
         emissiveIntensity: 0.2,
         roughness: 0.6,
-    }), [agentColor, isStorekeeper]);
+    }), [agentColor, isStorekeeper, isController]);
 
     const ringMat = useMemo(() => new THREE.MeshBasicMaterial({
         color: agentColor,
@@ -292,19 +302,19 @@ const AgentMesh = React.memo(({ agent }) => {
     return (
         <group position={[px, 0, pz]}>
             {/* Legs */}
-            <mesh geometry={sharedGeo.legs} material={bodyMat} position={[-0.07, 0.175, 0]} />
-            <mesh geometry={sharedGeo.legs} material={bodyMat} position={[0.07, 0.175, 0]} />
+            <mesh castShadow receiveShadow geometry={sharedGeo.legs} material={bodyMat} position={[-0.07, 0.175, 0]} />
+            <mesh castShadow receiveShadow geometry={sharedGeo.legs} material={bodyMat} position={[0.07, 0.175, 0]} />
 
             {/* Body / Torso (vest) */}
-            <mesh geometry={sharedGeo.body} material={vestMat} position={[0, 0.6, 0]} />
+            <mesh castShadow receiveShadow geometry={sharedGeo.body} material={vestMat} position={[0, 0.6, 0]} />
 
             {/* Head */}
-            <mesh geometry={sharedGeo.head} material={sharedMat.skinMat} position={[0, 0.95, 0]} />
+            <mesh castShadow receiveShadow geometry={sharedGeo.head} material={sharedMat.skinMat} position={[0, 0.95, 0]} />
 
             {/* Hard hat (small hemisphere on head) */}
-            <mesh position={[0, 1.05, 0]}>
+            <mesh castShadow receiveShadow position={[0, 1.05, 0]}>
                 <sphereGeometry args={[0.13, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2]} />
-                <meshStandardMaterial color={isStorekeeper ? '#fbbf24' : '#fb923c'} />
+                <meshStandardMaterial color={isController ? '#10b981' : isStorekeeper ? '#fbbf24' : '#fb923c'} roughness={0.4} metalness={0.1} />
             </mesh>
 
             {/* Ground ring indicator */}
@@ -367,9 +377,9 @@ const Floor = React.memo(() => {
     return (
         <group>
             {/* Concrete floor */}
-            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]}>
+            <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]}>
                 <planeGeometry args={[floorW, floorH]} />
-                <meshStandardMaterial color="#dfe3e8" roughness={0.85} />
+                <meshStandardMaterial color="#c8ced4" roughness={0.9} />
             </mesh>
             {/* Border */}
             <lineSegments rotation={[-Math.PI / 2, 0, 0]} geometry={edgesGeo} material={sharedMat.floorBorder} />
@@ -434,26 +444,105 @@ const TooltipBridge = ({ hoveredZone, setTooltipData }) => {
     return null;
 };
 
+// ---- CONVEYOR BELT (Tapis Roulant) ----
+const Conveyor3D = React.memo(({ zone, conveyorQueue }) => {
+    const w = zone.width * SCALE;
+    const d = zone.height * SCALE;
+    const cx = (zone.x + zone.width / 2 - MAP_W / 2) * SCALE;
+    const cz = (zone.y + zone.height / 2 - MAP_H / 2) * SCALE;
+    const rollerCount = Math.max(3, Math.floor(w / 0.2));
+    const rollersRef = useRef([]);
+
+    // Animate rollers spinning
+    useFrame(() => {
+        rollersRef.current.forEach(r => {
+            if (r) r.rotation.z += 0.08;
+        });
+    });
+
+    return (
+        <group position={[cx, 0.4, cz]}>
+            {/* Belt surface — dark rubber */}
+            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
+                <planeGeometry args={[w, d]} />
+                <meshStandardMaterial color="#2d2d2d" roughness={0.9} />
+            </mesh>
+
+            {/* Side rails */}
+            <mesh position={[0, 0.03, -d / 2 - 0.01]}>
+                <boxGeometry args={[w + 0.04, 0.08, 0.02]} />
+                <meshStandardMaterial color="#64748b" metalness={0.8} roughness={0.2} />
+            </mesh>
+            <mesh position={[0, 0.03, d / 2 + 0.01]}>
+                <boxGeometry args={[w + 0.04, 0.08, 0.02]} />
+                <meshStandardMaterial color="#64748b" metalness={0.8} roughness={0.2} />
+            </mesh>
+
+            {/* Rollers (spinning cylinders) */}
+            {Array.from({ length: rollerCount }, (_, i) => {
+                const lx = -w / 2 + (i + 0.5) * (w / rollerCount);
+                return (
+                    <mesh key={`roller-${i}`}
+                        ref={el => rollersRef.current[i] = el}
+                        position={[lx, -0.01, 0]}
+                        rotation={[Math.PI / 2, 0, 0]}>
+                        <cylinderGeometry args={[0.015, 0.015, d * 0.9, 8]} />
+                        <meshStandardMaterial color="#94a3b8" metalness={0.6} roughness={0.3} />
+                    </mesh>
+                );
+            })}
+
+            {/* Legs / supports */}
+            {[-w / 2, 0, w / 2].map((lx, i) => (
+                <mesh key={`leg-${i}`} position={[lx, -0.12, 0]}>
+                    <cylinderGeometry args={[0.025, 0.025, 0.2, 6]} />
+                    <meshStandardMaterial color="#334155" metalness={0.5} />
+                </mesh>
+            ))}
+
+            {/* Boxes sliding along the belt */}
+            {(conveyorQueue || []).map((box, i) => {
+                const bx = -w / 2 + box.progress * w;
+                return (
+                    <mesh key={`box-${i}`} position={[bx, 0.08, 0]}>
+                        <boxGeometry args={[0.12, 0.1, d * 0.5]} />
+                        <meshStandardMaterial color={box.color || '#c0392b'} roughness={0.5} />
+                    </mesh>
+                );
+            })}
+
+            <TextSprite text={zone.name} position={[0, 0.7, 0]} scale={0.9} bgColor="rgba(230, 126, 34, 0.9)" />
+        </group>
+    );
+});
+
 // ---- SCENE CONTENT ----
 const SceneContent = ({ onHover, onUnhover, hoveredZoneId, hoveredZone, setTooltipData }) => {
-    const { agents, layoutConfig: config } = useWarehouseStore();
+    const { agents, layoutConfig: config, conveyorQueue } = useWarehouseStore();
     if (!config) return null;
 
     return (
         <>
             {/* Lighting */}
             <ambientLight intensity={0.5} color="#e8ecf0" />
-            <directionalLight position={[25, 35, 15]} intensity={0.9} color="#fff5e0" />
+            <directionalLight castShadow position={[25, 35, 15]} intensity={0.9} color="#fff5e0"
+                shadow-mapSize-width={2048} shadow-mapSize-height={2048}
+                shadow-camera-far={100} shadow-camera-left={-40} shadow-camera-right={40} shadow-camera-top={40} shadow-camera-bottom={-40} />
             <directionalLight position={[-15, 20, -10]} intensity={0.3} color="#c8d8ff" />
             <hemisphereLight args={['#b0c4de', '#7a8999', 0.3]} />
 
             <Floor />
             <GraphOverlay nodes={config.nodes} edges={config.edges} />
 
-            {config.zones.map(zone => (
+            {config.zones.filter(z => z.type !== 'conveyor').map(zone => (
                 <RackMesh key={zone.id} zone={zone}
                     isHovered={hoveredZoneId === zone.id}
                     onHover={onHover} onUnhover={onUnhover} />
+            ))}
+
+            {/* Conveyor zones */}
+            {config.zones.filter(z => z.type === 'conveyor').map(zone => (
+                <Conveyor3D key={zone.id} zone={zone} conveyorQueue={conveyorQueue} />
             ))}
 
             {agents.map(agent => (
@@ -480,6 +569,7 @@ const WarehouseMap = () => {
             {config ? (
                 <>
                     <Canvas
+                        shadows
                         camera={{ position: [0, 40, 35], fov: 50, near: 0.1, far: 200 }}
                         dpr={[1, 1.5]}
                         gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}

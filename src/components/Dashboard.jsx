@@ -16,6 +16,10 @@ const Dashboard = () => {
                     <p className="text-sm text-gray-500">Completed Orders</p>
                     <p className="text-2xl font-bold">{metrics.completedOrders}</p>
                 </div>
+                <div className="bg-white p-3 rounded shadow-sm border-l-4 border-orange-400">
+                    <p className="text-sm text-gray-500">Replenishments</p>
+                    <p className="text-2xl font-bold">{metrics.totalReplenishments || 0}</p>
+                </div>
                 <div className="bg-white p-3 rounded shadow-sm">
                     <p className="text-sm text-gray-500">Agents Active</p>
                     <p className="text-2xl font-bold">{agents.length}</p>

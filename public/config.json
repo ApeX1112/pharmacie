@@ -24,7 +24,7 @@
             "width": 300,
             "height": 150,
             "type": "workstation",
-            "color": "rgba(100, 100, 255, 0.3)"
+            "color": "rgba(100, 100, 255, 0.1)"
         },
         {
             "id": "zone_A_pick",
@@ -34,7 +34,7 @@
             "width": 40,
             "height": 100,
             "type": "picking",
-            "stock": 50,
+            "stock": 18,
             "capacity": 100,
             "threshold": 20,
             "color": "rgba(255, 100, 100, 0.6)"
@@ -59,7 +59,7 @@
             "width": 150,
             "height": 20,
             "type": "picking",
-            "stock": 50,
+            "stock": 12,
             "capacity": 100,
             "threshold": 20,
             "color": "rgba(255, 100, 100, 0.6)"
@@ -84,7 +84,7 @@
             "width": 40,
             "height": 100,
             "type": "picking",
-            "stock": 50,
+            "stock": 22,
             "capacity": 100,
             "threshold": 20,
             "color": "rgba(255, 100, 100, 0.6)"
@@ -109,7 +109,7 @@
             "width": 80,
             "height": 100,
             "type": "picking",
-            "stock": 50,
+            "stock": 8,
             "capacity": 100,
             "threshold": 20,
             "color": "rgba(255, 100, 100, 0.6)"
@@ -355,11 +355,21 @@
             "color": "rgba(255, 100, 100, 0.6)"
         },
         {
+            "id": "conveyor",
+            "name": "Convoyeur",
+            "x": 120,
+            "y": 155,
+            "width": 260,
+            "height": 25,
+            "type": "conveyor",
+            "color": "rgba(255, 165, 0, 0.5)"
+        },
+        {
             "id": "shipping",
             "name": "Expédition",
-            "x": 1000,
-            "y": 800,
-            "width": 100,
+            "x": 10,
+            "y": 100,
+            "width": 80,
             "height": 80,
             "type": "outbound",
             "color": "rgba(255, 0, 0, 0.3)"
@@ -374,7 +384,7 @@
         {
             "id": "n_top_corridor_1",
             "x": 80,
-            "y": 100
+            "y": 30
         },
         {
             "id": "n_top_corridor_2",
@@ -390,6 +400,26 @@
             "id": "n_top_corridor_4",
             "x": 1050,
             "y": 100
+        },
+        {
+            "id": "n_pilulier_left",
+            "x": 80,
+            "y": 220
+        },
+        {
+            "id": "n_pilulier_right",
+            "x": 420,
+            "y": 220
+        },
+        {
+            "id": "n_conveyor",
+            "x": 250,
+            "y": 167
+        },
+        {
+            "id": "n_shipping",
+            "x": 50,
+            "y": 140
         },
         {
             "id": "n_aisle_A_top",
@@ -606,7 +636,35 @@
         ],
         [
             "n_top_corridor_1",
+            "n_pilulier_left"
+        ],
+        [
+            "n_pilulier_left",
+            "n_conveyor"
+        ],
+        [
+            "n_conveyor",
+            "n_pilulier_right"
+        ],
+        [
+            "n_pilulier_right",
+            "n_top_corridor_2"
+        ],
+        [
+            "n_pilulier_right",
+            "n_aisle_E_top"
+        ],
+        [
+            "n_pilulier_left",
             "n_aisle_A_top"
+        ],
+        [
+            "n_conveyor",
+            "n_shipping"
+        ],
+        [
+            "n_shipping",
+            "n_aisle_B_top"
         ],
         [
             "n_aisle_A_top",
@@ -673,6 +731,10 @@
             "n_F_aisle_bot"
         ],
         [
+            "n_top_corridor_3",
+            "n_F_aisle_top"
+        ],
+        [
             "n_top_corridor_4",
             "n_right_aisle_top"
         ],
@@ -691,22 +753,6 @@
         [
             "n_F_aisle_bot",
             "n_bottom_hub"
-        ],
-        [
-            "n_aisle_A_bot",
-            "n_aisle_C_bot"
-        ],
-        [
-            "n_aisle_C_bot",
-            "n_aisle_D_bot"
-        ],
-        [
-            "n_aisle_D_bot",
-            "n_aisle_E_bot"
-        ],
-        [
-            "n_aisle_E_bot",
-            "n_F_aisle_bot"
         ],
         [
             "n_Q_row",
@@ -761,40 +807,20 @@
             "n_Q_row"
         ],
         [
-            "n_F_aisle_mid",
-            "n_M_row"
-        ],
-        [
-            "n_F_aisle_mid",
-            "n_L_row"
-        ],
-        [
-            "n_F_aisle_bot",
-            "n_G_row"
-        ],
-        [
-            "n_right_aisle_top",
-            "n_Q_row_end"
-        ],
-        [
-            "n_right_aisle_top",
-            "n_P_row_end"
-        ],
-        [
-            "n_right_aisle_mid",
-            "n_M_row_end"
-        ],
-        [
-            "n_right_aisle_mid",
-            "n_L_row_end"
-        ],
-        [
             "n_F_aisle_top",
             "n_O_row"
         ],
         [
             "n_F_aisle_top",
             "n_N_row"
+        ],
+        [
+            "n_F_aisle_mid",
+            "n_M_row"
+        ],
+        [
+            "n_F_aisle_mid",
+            "n_L_row"
         ],
         [
             "n_F_aisle_mid",
@@ -806,6 +832,10 @@
         ],
         [
             "n_F_aisle_bot",
+            "n_G_row"
+        ],
+        [
+            "n_F_aisle_bot",
             "n_I_row"
         ],
         [
@@ -814,11 +844,27 @@
         ],
         [
             "n_right_aisle_top",
+            "n_Q_row_end"
+        ],
+        [
+            "n_right_aisle_top",
+            "n_P_row_end"
+        ],
+        [
+            "n_right_aisle_top",
             "n_O_row_end"
         ],
         [
             "n_right_aisle_top",
             "n_N_row_end"
+        ],
+        [
+            "n_right_aisle_mid",
+            "n_M_row_end"
+        ],
+        [
+            "n_right_aisle_mid",
+            "n_L_row_end"
         ],
         [
             "n_right_aisle_mid",
@@ -835,6 +881,10 @@
         [
             "n_right_aisle_bot",
             "n_H_row_end"
+        ],
+        [
+            "n_right_aisle_bot",
+            "n_G_row_end"
         ]
     ]
 }

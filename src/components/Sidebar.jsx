@@ -1,12 +1,12 @@
 import React, { useRef, useState } from 'react';
 import useWarehouseStore from '../store/useWarehouseStore';
-import { Play, Pause, Upload, List, Plus, Settings } from 'lucide-react';
+import { Play, Pause, Upload, List, Plus, Settings, Shuffle } from 'lucide-react';
 import { parseExcelOrders } from '../utils/ExcelImporter';
 import OrderList from './OrderList';
 import ArrivalsModal from './ArrivalsModal';
 
 const Sidebar = () => {
-    const { isPlaying, togglePlay, simulationSpeed, setSpeed, addOrder } = useWarehouseStore();
+    const { isPlaying, togglePlay, simulationSpeed, setSpeed, addOrder, randomizeStock } = useWarehouseStore();
     const fileInputRef = useRef(null);
     const [showOrderList, setShowOrderList] = useState(false);
     const [showArrivalsConfig, setShowArrivalsConfig] = useState(false);
@@ -70,6 +70,13 @@ const Sidebar = () => {
                     <Plus size={24} />
                 </button>
 
+                <button
+                    onClick={randomizeStock}
+                    className="p-2 hover:bg-slate-700 rounded transition"
+                    title="Randomize Stock Levels"
+                >
+                    <Shuffle size={24} />
+                </button>
 
                 <div className="flex flex-col items-center space-y-1">
                     <span className="text-xs text-gray-400">Speed</span>

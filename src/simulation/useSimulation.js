@@ -32,15 +32,19 @@ export const useSimulation = () => {
             engineRef.current.tasks = useWarehouseStore.getState().orders;
             engineRef.current.config.parameters = useWarehouseStore.getState().parameters;
 
-            const { agents: updatedAgents, distance, zones: updatedZones, timeInfo, totalArrivals, newOrders, completedOrderIds } = engineRef.current.update(delta, simulationSpeed);
+            const { agents: updatedAgents, distance, zones: updatedZones, timeInfo, totalArrivals, totalReplenishments, conveyorQueue, newOrders, completedOrderIds } = engineRef.current.update(delta, simulationSpeed);
 
             // Sync Agents
             useWarehouseStore.getState().updateAgents(updatedAgents);
+
+            // Sync Conveyor Queue
+            useWarehouseStore.getState().updateConveyorQueue(conveyorQueue || []);
 
             // Sync Metrics
             const currentMetrics = useWarehouseStore.getState().metrics;
             const updatedMetrics = {
                 totalArrivals: totalArrivals,
+                totalReplenishments: totalReplenishments || 0,
                 totalDistance: (currentMetrics.totalDistance || 0) + distance
             };
 
