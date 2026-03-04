@@ -32,7 +32,8 @@ export const useSimulation = () => {
             engineRef.current.tasks = useWarehouseStore.getState().orders;
             engineRef.current.config.parameters = useWarehouseStore.getState().parameters;
 
-            const { agents: updatedAgents, distance, zones: updatedZones, timeInfo, totalArrivals, totalReplenishments, conveyorQueue, newOrders, completedOrderIds } = engineRef.current.update(delta, simulationSpeed);
+            const result = engineRef.current.update(delta, simulationSpeed);
+            const { agents: updatedAgents, distance, zones: updatedZones, timeInfo, totalArrivals, totalReplenishments, conveyorQueue, newOrders, completedOrderIds, advancedMetrics, alerts } = result;
 
             // Sync Agents
             useWarehouseStore.getState().updateAgents(updatedAgents);
@@ -40,16 +41,22 @@ export const useSimulation = () => {
             // Sync Conveyor Queue
             useWarehouseStore.getState().updateConveyorQueue(conveyorQueue || []);
 
-            // Sync Metrics
+            // Sync Metrics (basic + advanced)
             const currentMetrics = useWarehouseStore.getState().metrics;
             const updatedMetrics = {
                 totalArrivals: totalArrivals,
                 totalReplenishments: totalReplenishments || 0,
-                totalDistance: (currentMetrics.totalDistance || 0) + distance
+                totalDistance: (currentMetrics.totalDistance || 0) + distance,
+                ...(advancedMetrics || {})
             };
 
             useWarehouseStore.getState().updateMetrics(updatedMetrics);
             useWarehouseStore.getState().updateTimeInfo(timeInfo);
+
+            // Sync Alerts
+            if (alerts) {
+                useWarehouseStore.getState().setAlerts(alerts);
+            }
 
             // Sync Orders
             if (newOrders && newOrders.length > 0) {

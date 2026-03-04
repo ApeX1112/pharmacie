@@ -1,9 +1,18 @@
 import { create } from 'zustand';
 
-const useWarehouseStore = create((set) => ({
+const useWarehouseStore = create((set, get) => ({
     isPlaying: false,
     simulationSpeed: 1,
     agents: [
+        { id: 'M1', type: 'Storekeeper', x: 100, y: 650, state: 'idle' },
+        { id: 'M2', type: 'Storekeeper', x: 200, y: 400, state: 'idle' },
+        { id: 'M3', type: 'Storekeeper', x: 300, y: 500, state: 'idle' },
+        { id: 'P1', type: 'Picker', x: 800, y: 150, state: 'idle' },
+        { id: 'P2', type: 'Picker', x: 750, y: 400, state: 'idle' },
+        { id: 'P3', type: 'Picker', x: 900, y: 600, state: 'idle' },
+        { id: 'C1', type: 'Controller', x: 250, y: 120, state: 'idle' }
+    ],
+    initialAgents: [
         { id: 'M1', type: 'Storekeeper', x: 100, y: 650, state: 'idle' },
         { id: 'M2', type: 'Storekeeper', x: 200, y: 400, state: 'idle' },
         { id: 'M3', type: 'Storekeeper', x: 300, y: 500, state: 'idle' },
@@ -21,22 +30,39 @@ const useWarehouseStore = create((set) => ({
         totalDistance: 0,
         idleTime: 0,
         totalArrivals: 0,
-        totalReplenishments: 0
+        totalReplenishments: 0,
+        // Advanced KPIs
+        avgPrepTime: 0,
+        avgControlWaitTime: 0,
+        pickerUtilization: 0,
+        conveyorUtilization: 0,
+        pickingRuptureRate: 0,
+        pendingOrders: 0,
+        throughput: 0
     },
+    alerts: [],
     layoutConfig: null,
+
+    // Scenario system
+    scenarioActive: null,
+    baselineSnapshot: null,
+
     parameters: {
         inboundFrequency: 5,
         replenishThreshold: 20,
         arrivalParams: {
-            A: { mean: 12, stdDev: 3, maxRate: 50, enabled: true },  // Peak at noon
-            B: { mean: 12, stdDev: 3, maxRate: 50, enabled: true },  // Peak at noon
-            C: { mean: 12, stdDev: 3, maxRate: 50, enabled: true },  // Peak at noon
-            D: { mean: 12, stdDev: 3, maxRate: 50, enabled: true }   // Peak at noon
+            A: { peak1: 9, peak2: 14, stdDev1: 1.5, stdDev2: 2, weight1: 0.5, maxRate: 50, enabled: true },
+            B: { peak1: 9, peak2: 14, stdDev1: 1.5, stdDev2: 2, weight1: 0.5, maxRate: 50, enabled: true },
+            C: { peak1: 9, peak2: 14, stdDev1: 1.5, stdDev2: 2, weight1: 0.5, maxRate: 50, enabled: true },
+            D: { peak1: 9, peak2: 14, stdDev1: 1.5, stdDev2: 2, weight1: 0.5, maxRate: 50, enabled: true }
         },
         outboundParams: {
-            mean: 14, // Peak at 14:00
-            stdDev: 4,
-            maxRate: 0.1, // 0.1 orders/hour = 1 order every 10 hours at peak (very realistic)
+            peak1: 10,
+            peak2: 15,
+            stdDev1: 1.5,
+            stdDev2: 2,
+            weight1: 0.5,
+            maxRate: 0.1,
             enabled: true
         }
     },
@@ -48,6 +74,7 @@ const useWarehouseStore = create((set) => ({
     updateMetrics: (newMetrics) => set((state) => ({
         metrics: { ...state.metrics, ...newMetrics }
     })),
+    setAlerts: (alerts) => set({ alerts }),
     setLayoutConfig: (config) => set({ layoutConfig: config }),
     randomizeStock: () => set((state) => {
         if (!state.layoutConfig) return {};
@@ -64,11 +91,8 @@ const useWarehouseStore = create((set) => ({
     }),
     updateZoneStock: (zonesOrId, amount) => set((state) => {
         if (Array.isArray(zonesOrId)) {
-            // Bulk update from Engine
             return { layoutConfig: { ...state.layoutConfig, zones: zonesOrId } };
         }
-        // Legacy single update (if needed)
-        // ... (existing logic)
         return { layoutConfig: { ...state.layoutConfig, zones: state.layoutConfig.zones } };
     }),
     setParameter: (key, value) => set((state) => ({
@@ -83,6 +107,15 @@ const useWarehouseStore = create((set) => ({
                     ...state.parameters.arrivalParams[zone],
                     [key]: value
                 }
+            }
+        }
+    })),
+    setOutboundParam: (key, value) => set((state) => ({
+        parameters: {
+            ...state.parameters,
+            outboundParams: {
+                ...state.parameters.outboundParams,
+                [key]: value
             }
         }
     })),
@@ -104,8 +137,64 @@ const useWarehouseStore = create((set) => ({
         metrics: status === 'completed' ? { ...state.metrics, completedOrders: state.metrics.completedOrders + 1 } : state.metrics
     })),
     updateTimeInfo: (info) => set({ timeInfo: info }),
-    tick: () => set((state) => ({ currentTime: state.currentTime + 1 })), // Placeholder to ensure I find the file first.
-    // I will use `grep_search` to find where `engine.update` is called. tick
+    tick: () => set((state) => ({ currentTime: state.currentTime + 1 })),
+
+    // Scenario management
+    saveBaseline: () => set((state) => ({
+        baselineSnapshot: {
+            metrics: { ...state.metrics },
+            parameters: JSON.parse(JSON.stringify(state.parameters)),
+            agentCount: state.agents.length,
+            timestamp: state.timeInfo
+        }
+    })),
+    resetToBaseline: () => set((state) => {
+        if (!state.baselineSnapshot) return {};
+        return {
+            parameters: JSON.parse(JSON.stringify(state.baselineSnapshot.parameters)),
+            agents: [...state.initialAgents.map(a => ({ ...a }))],
+            scenarioActive: null
+        };
+    }),
+    applyScenario: (scenarioId) => set((state) => {
+        const s = { ...state };
+        switch (scenarioId) {
+            case 'plus20_commands': {
+                const newParams = JSON.parse(JSON.stringify(state.parameters));
+                newParams.outboundParams.maxRate *= 1.2;
+                Object.keys(newParams.arrivalParams).forEach(zone => {
+                    newParams.arrivalParams[zone].maxRate *= 1.2;
+                });
+                return { parameters: newParams, scenarioActive: scenarioId };
+            }
+            case 'minus1_picker': {
+                const pickers = state.agents.filter(a => a.type === 'Picker');
+                if (pickers.length <= 1) return { scenarioActive: scenarioId };
+                const newAgents = state.agents.filter(a => a.id !== pickers[pickers.length - 1].id);
+                return { agents: newAgents, scenarioActive: scenarioId };
+            }
+            case 'fridge_surge': {
+                const newParams = JSON.parse(JSON.stringify(state.parameters));
+                newParams.outboundParams.maxRate *= 2;
+                return { parameters: newParams, scenarioActive: scenarioId };
+            }
+            case 'frequent_rupture': {
+                if (!state.layoutConfig) return { scenarioActive: scenarioId };
+                const zones = state.layoutConfig.zones.map(z => {
+                    if (z.type === 'picking') {
+                        return { ...z, stock: Math.max(0, (z.threshold || 20) - 5) };
+                    }
+                    return z;
+                });
+                return { layoutConfig: { ...state.layoutConfig, zones }, scenarioActive: scenarioId };
+            }
+            case 'slow_control': {
+                return { scenarioActive: scenarioId };
+            }
+            default:
+                return {};
+        }
+    }),
 }));
 
 export default useWarehouseStore;

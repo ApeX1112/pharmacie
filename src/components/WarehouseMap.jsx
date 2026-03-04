@@ -10,6 +10,7 @@ extend({ OrbitControls });
 const SCALE = 0.05;
 const MAP_W = 1200;
 const MAP_H = 900;
+const WALL_H = 6;
 
 function to3D(x, y) {
     return [(x - MAP_W / 2) * SCALE, 0, (y - MAP_H / 2) * SCALE];
@@ -48,7 +49,7 @@ function getShelfCount(zone) {
     }
 }
 
-// Create text sprite texture (cached)
+// Text sprite texture cache
 const textureCache = new Map();
 function createTextTexture(text, bgColor = 'rgba(0,0,0,0.8)', textColor = '#fff', fontSize = 32) {
     const key = `${text}_${bgColor}_${textColor}_${fontSize}`;
@@ -84,7 +85,7 @@ function createTextTexture(text, bgColor = 'rgba(0,0,0,0.8)', textColor = '#fff'
     return result;
 }
 
-// ---- SHARED GEOMETRIES (reused across all instances) ----
+// ---- SHARED GEOMETRIES ----
 const sharedGeo = {
     post: new THREE.CylinderGeometry(0.04, 0.04, 1, 6),
     shelf: new THREE.BoxGeometry(1, 0.04, 1),
@@ -92,19 +93,39 @@ const sharedGeo = {
     head: new THREE.SphereGeometry(0.15, 8, 6),
     body: new THREE.CylinderGeometry(0.1, 0.14, 0.5, 8),
     legs: new THREE.CylinderGeometry(0.05, 0.05, 0.35, 6),
+    arm: new THREE.CylinderGeometry(0.04, 0.035, 0.35, 6),
+    hand: new THREE.SphereGeometry(0.04, 6, 4),
+    shoe: new THREE.BoxGeometry(0.08, 0.04, 0.14),
     nodeGeo: new THREE.SphereGeometry(0.06, 4, 4),
     ring: new THREE.RingGeometry(0.2, 0.38, 16),
 };
 
-// Shared materials
+const MEDICINE_COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c'];
+
 const sharedMat = {
-    metalPost: new THREE.MeshStandardMaterial({ color: '#8892b0', metalness: 0.8, roughness: 0.2 }), // Clean metallic gray
-    shelf: new THREE.MeshStandardMaterial({ color: '#a8b2d1', metalness: 0.6, roughness: 0.4 }),     // Lighter metallic gray
-    floorMat: new THREE.MeshStandardMaterial({ color: '#9ca3af', roughness: 0.9, metalness: 0.1 }),
+    metalPost: new THREE.MeshStandardMaterial({ color: '#7a8599', metalness: 0.85, roughness: 0.15 }),
+    shelf: new THREE.MeshStandardMaterial({ color: '#9aa5bf', metalness: 0.7, roughness: 0.3 }),
+    floorMat: new THREE.MeshStandardMaterial({ color: '#d4d8e0', roughness: 0.7, metalness: 0.05 }),
     graphLine: new THREE.LineBasicMaterial({ color: '#888888', transparent: true, opacity: 0.15 }),
     graphNode: new THREE.MeshBasicMaterial({ color: '#aaaaaa', transparent: true, opacity: 0.2 }),
     skinMat: new THREE.MeshStandardMaterial({ color: '#f5d0a9', roughness: 0.8 }),
-    floorBorder: new THREE.LineBasicMaterial({ color: '#9ca3af' }),
+    floorBorder: new THREE.LineBasicMaterial({ color: '#7a8090' }),
+    wallMat: new THREE.MeshStandardMaterial({ color: '#e0e4eb', roughness: 0.6, metalness: 0.1, transparent: true, opacity: 0.35, side: THREE.DoubleSide }),
+    wallEdge: new THREE.LineBasicMaterial({ color: '#94a3b8' }),
+    ceilingMat: new THREE.MeshStandardMaterial({ color: '#f0f2f5', roughness: 0.8, metalness: 0.05, transparent: true, opacity: 0.15, side: THREE.DoubleSide }),
+    trussMat: new THREE.MeshStandardMaterial({ color: '#6b7a8d', metalness: 0.7, roughness: 0.3 }),
+    safetyYellow: new THREE.MeshStandardMaterial({ color: '#f59e0b', roughness: 0.6 }),
+    safetyStripe: new THREE.MeshStandardMaterial({ color: '#facc15', roughness: 0.5 }),
+    coldGlass: new THREE.MeshStandardMaterial({ color: '#67e8f9', roughness: 0.1, metalness: 0.3, transparent: true, opacity: 0.2, side: THREE.DoubleSide }),
+    dockMat: new THREE.MeshStandardMaterial({ color: '#94a3b8', roughness: 0.5, metalness: 0.4 }),
+    pantsMat: new THREE.MeshStandardMaterial({ color: '#1e293b', roughness: 0.8 }),
+    shoeMat: new THREE.MeshStandardMaterial({ color: '#2d2317', roughness: 0.8 }),
+    chariotMetal: new THREE.MeshStandardMaterial({ color: '#778899', metalness: 0.8, roughness: 0.2 }),
+    chariotShelf: new THREE.MeshStandardMaterial({ color: '#94a3b8', metalness: 0.6, roughness: 0.3 }),
+    wheelMat: new THREE.MeshStandardMaterial({ color: '#1a1a1a', roughness: 0.9 }),
+    bollardMat: new THREE.MeshStandardMaterial({ color: '#facc15', roughness: 0.4, metalness: 0.3 }),
+    steelBeam: new THREE.MeshStandardMaterial({ color: '#6b7d8f', metalness: 0.85, roughness: 0.15 }),
+    corrugatedWall: new THREE.MeshStandardMaterial({ color: '#8899aa', metalness: 0.6, roughness: 0.4, side: THREE.DoubleSide }),
 };
 
 // ---- CAMERA CONTROLS ----
@@ -132,6 +153,340 @@ const TextSprite = React.memo(({ text, position, scale = 1.2, bgColor, textColor
     return <sprite position={position} material={mat} scale={[scale * aspect, scale, 1]} />;
 });
 
+// ---- WAREHOUSE WALLS ----
+const Walls = React.memo(() => {
+    const fw = MAP_W * SCALE;
+    const fh = MAP_H * SCALE;
+    const h = WALL_H;
+    const colCount = 8;
+
+    return (
+        <group>
+            {/* Back wall */}
+            <mesh position={[0, h / 2, -fh / 2]} material={sharedMat.wallMat}>
+                <planeGeometry args={[fw, h]} />
+            </mesh>
+            {/* Front wall */}
+            <mesh position={[0, h / 2, fh / 2]} material={sharedMat.wallMat} rotation={[0, Math.PI, 0]}>
+                <planeGeometry args={[fw, h]} />
+            </mesh>
+            {/* Left wall */}
+            <mesh position={[-fw / 2, h / 2, 0]} rotation={[0, Math.PI / 2, 0]} material={sharedMat.wallMat}>
+                <planeGeometry args={[fh, h]} />
+            </mesh>
+            {/* Right wall */}
+            <mesh position={[fw / 2, h / 2, 0]} rotation={[0, -Math.PI / 2, 0]} material={sharedMat.wallMat}>
+                <planeGeometry args={[fh, h]} />
+            </mesh>
+
+            {/* Steel columns along front & back walls */}
+            {Array.from({ length: colCount + 1 }, (_, i) => {
+                const x = -fw / 2 + i * (fw / colCount);
+                return (
+                    <React.Fragment key={`col-fb-${i}`}>
+                        <mesh position={[x, h / 2, -fh / 2 + 0.05]} material={sharedMat.steelBeam}>
+                            <boxGeometry args={[0.12, h, 0.12]} />
+                        </mesh>
+                        <mesh position={[x, h / 2, fh / 2 - 0.05]} material={sharedMat.steelBeam}>
+                            <boxGeometry args={[0.12, h, 0.12]} />
+                        </mesh>
+                    </React.Fragment>
+                );
+            })}
+
+            {/* Steel columns along side walls */}
+            {Array.from({ length: colCount + 1 }, (_, i) => {
+                const z = -fh / 2 + i * (fh / colCount);
+                return (
+                    <React.Fragment key={`col-lr-${i}`}>
+                        <mesh position={[-fw / 2 + 0.05, h / 2, z]} material={sharedMat.steelBeam}>
+                            <boxGeometry args={[0.12, h, 0.12]} />
+                        </mesh>
+                        <mesh position={[fw / 2 - 0.05, h / 2, z]} material={sharedMat.steelBeam}>
+                            <boxGeometry args={[0.12, h, 0.12]} />
+                        </mesh>
+                    </React.Fragment>
+                );
+            })}
+
+            {/* Ventilation ducts along top of walls */}
+            <mesh position={[0, h - 0.3, -fh / 2 + 0.15]}>
+                <boxGeometry args={[fw * 0.8, 0.25, 0.2]} />
+                <meshStandardMaterial color="#7a8a9a" metalness={0.7} roughness={0.25} />
+            </mesh>
+            <mesh position={[0, h - 0.3, fh / 2 - 0.15]}>
+                <boxGeometry args={[fw * 0.8, 0.25, 0.2]} />
+                <meshStandardMaterial color="#7a8a9a" metalness={0.7} roughness={0.25} />
+            </mesh>
+
+            {/* Wall edges */}
+            {[
+                [-fw / 2, 0, -fh / 2, fw / 2, 0, -fh / 2],
+                [-fw / 2, 0, fh / 2, fw / 2, 0, fh / 2],
+                [-fw / 2, 0, -fh / 2, -fw / 2, 0, fh / 2],
+                [fw / 2, 0, -fh / 2, fw / 2, 0, fh / 2],
+                [-fw / 2, h, -fh / 2, fw / 2, h, -fh / 2],
+                [-fw / 2, h, fh / 2, fw / 2, h, fh / 2],
+            ].map((coords, i) => {
+                const geo = new THREE.BufferGeometry();
+                geo.setAttribute('position', new THREE.Float32BufferAttribute(coords, 3));
+                return <lineSegments key={`we-${i}`} geometry={geo} material={sharedMat.wallEdge} />;
+            })}
+        </group>
+    );
+});
+
+// ---- CEILING with TRUSSES ----
+const Ceiling = React.memo(() => {
+    const fw = MAP_W * SCALE;
+    const fh = MAP_H * SCALE;
+    const h = WALL_H;
+
+    return (
+        <group>
+            {/* Semi-transparent ceiling */}
+            <mesh position={[0, h, 0]} rotation={[-Math.PI / 2, 0, 0]} material={sharedMat.ceilingMat}>
+                <planeGeometry args={[fw, fh]} />
+            </mesh>
+
+            {/* Metal trusses running across */}
+            {Array.from({ length: 6 }, (_, i) => {
+                const z = -fh / 2 + (i + 0.5) * (fh / 6);
+                return (
+                    <group key={`truss-${i}`}>
+                        {/* Main beam */}
+                        <mesh position={[0, h - 0.15, z]} material={sharedMat.trussMat}>
+                            <boxGeometry args={[fw, 0.12, 0.08]} />
+                        </mesh>
+                        {/* Cross supports */}
+                        {Array.from({ length: 8 }, (_, j) => {
+                            const x = -fw / 2 + (j + 0.5) * (fw / 8);
+                            return (
+                                <mesh key={`v-${j}`} position={[x, h - 0.3, z]} material={sharedMat.trussMat}>
+                                    <boxGeometry args={[0.04, 0.25, 0.04]} />
+                                </mesh>
+                            );
+                        })}
+                    </group>
+                );
+            })}
+        </group>
+    );
+});
+
+// ---- CEILING LIGHTS ----
+const CeilingLights = React.memo(() => {
+    const fw = MAP_W * SCALE;
+    const fh = MAP_H * SCALE;
+    const lights = [];
+
+    for (let i = 0; i < 4; i++) {
+        for (let j = 0; j < 3; j++) {
+            const x = -fw / 2 + (i + 0.5) * (fw / 4);
+            const z = -fh / 2 + (j + 0.5) * (fh / 3);
+            lights.push(
+                <group key={`light-${i}-${j}`} position={[x, WALL_H - 0.5, z]}>
+                    {/* Light fixture box */}
+                    <mesh>
+                        <boxGeometry args={[1.5, 0.08, 0.4]} />
+                        <meshStandardMaterial color="#f8fafc" emissive="#f1f5f9" emissiveIntensity={0.5} />
+                    </mesh>
+                    <pointLight intensity={0.3} distance={20} color="#fffaf0" decay={2} />
+                </group>
+            );
+        }
+    }
+    return <group>{lights}</group>;
+});
+
+// ---- FLOOR MARKINGS (Safety lines) ----
+const FloorMarkings = React.memo(() => {
+    const fw = MAP_W * SCALE;
+    const fh = MAP_H * SCALE;
+
+    // Create aisle markings — dashed yellow lines on floor
+    const markings = [];
+
+    // Main horizontal aisles
+    const horizontalY = [280, 520, 600, 750].map(y => (y - MAP_H / 2) * SCALE);
+    horizontalY.forEach((z, i) => {
+        for (let s = 0; s < 20; s++) {
+            markings.push(
+                <mesh key={`h-${i}-${s}`} position={[-fw / 3 + s * 1.8, 0.005, z]} rotation={[-Math.PI / 2, 0, 0]}>
+                    <planeGeometry args={[1.2, 0.03]} />
+                    <meshStandardMaterial color="#eab308" emissive="#ca8a04" emissiveIntensity={0.2} />
+                </mesh>
+            );
+        }
+    });
+
+    // Vertical corridor markings
+    const verticalX = [80, 420, 540, 680].map(x => (x - MAP_W / 2) * SCALE);
+    verticalX.forEach((x, i) => {
+        for (let s = 0; s < 15; s++) {
+            markings.push(
+                <mesh key={`v-${i}-${s}`} position={[x, 0.005, -fh / 3 + s * 2]} rotation={[-Math.PI / 2, 0, 0]}>
+                    <planeGeometry args={[0.03, 1.5]} />
+                    <meshStandardMaterial color="#eab308" emissive="#ca8a04" emissiveIntensity={0.2} />
+                </mesh>
+            );
+        }
+    });
+
+    return <group>{markings}</group>;
+});
+
+// ---- SAFETY ZONE MARKINGS ----
+const SafetyZones = React.memo(() => {
+    // Yellow-black striped areas near conveyor and shipping
+    const zones = [
+        { x: 250, y: 155, w: 260, h: 25 },   // Conveyor area
+        { x: 50, y: 140, w: 80, h: 80 },       // Shipping area
+        { x: 850, y: 75, w: 100, h: 50 },       // Reception area
+    ];
+
+    return (
+        <group>
+            {zones.map((z, i) => {
+                const cx = (z.x - MAP_W / 2) * SCALE;
+                const cz = (z.y - MAP_H / 2) * SCALE;
+                const w = z.w * SCALE * 1.3;
+                const d = z.h * SCALE * 1.3;
+                return (
+                    <mesh key={`sz-${i}`} position={[cx, 0.003, cz]} rotation={[-Math.PI / 2, 0, 0]}>
+                        <planeGeometry args={[w, d]} />
+                        <meshStandardMaterial color="#fbbf24" transparent opacity={0.08} side={THREE.DoubleSide} />
+                    </mesh>
+                );
+            })}
+        </group>
+    );
+});
+
+// ---- LOADING DOCK ----
+const LoadingDock = React.memo(() => {
+    // Raised platform at reception
+    const cx = (800 + 50 - MAP_W / 2) * SCALE;
+    const cz = (50 - MAP_H / 2) * SCALE;
+
+    return (
+        <group position={[cx, 0, cz]}>
+            {/* Elevated platform */}
+            <mesh position={[0, 0.2, 0]} material={sharedMat.dockMat}>
+                <boxGeometry args={[6, 0.4, 3]} />
+            </mesh>
+            {/* Ramp */}
+            <mesh position={[0, 0.1, 2]} rotation={[0.15, 0, 0]} material={sharedMat.dockMat}>
+                <boxGeometry args={[5, 0.08, 1.5]} />
+            </mesh>
+            {/* Dock door frame */}
+            <mesh position={[0, 1.5, -1.5]}>
+                <boxGeometry args={[5, 3, 0.1]} />
+                <meshStandardMaterial color="#64748b" metalness={0.7} roughness={0.3} transparent opacity={0.3} />
+            </mesh>
+            {/* Bumpers */}
+            {[-2, 2].map((x, i) => (
+                <mesh key={`bump-${i}`} position={[x, 0.3, -1.4]}>
+                    <cylinderGeometry args={[0.15, 0.15, 0.5, 8]} />
+                    <meshStandardMaterial color="#1e293b" roughness={0.8} />
+                </mesh>
+            ))}
+            <TextSprite text="RÉCEPTION" position={[0, 2.5, -1.5]} scale={1.0} bgColor="rgba(34, 197, 94, 0.9)" />
+        </group>
+    );
+});
+
+// ---- COLD STORAGE CHAMBER (Chambre Froide) ----
+const ColdStorage = React.memo(() => {
+    const cx = (1060 + 10 - MAP_W / 2) * SCALE;
+    const cz = (140 + 150 - MAP_H / 2) * SCALE;
+    const w = 3;
+    const d = 18;
+    const h = 3.5;
+
+    return (
+        <group position={[cx + 2, 0, cz]}>
+            {/* Glass walls with blue tint */}
+            {/* Front */}
+            <mesh position={[0, h / 2, d / 2]} material={sharedMat.coldGlass}>
+                <planeGeometry args={[w, h]} />
+            </mesh>
+            {/* Back */}
+            <mesh position={[0, h / 2, -d / 2]} material={sharedMat.coldGlass}>
+                <planeGeometry args={[w, h]} />
+            </mesh>
+            {/* Left */}
+            <mesh position={[-w / 2, h / 2, 0]} rotation={[0, Math.PI / 2, 0]} material={sharedMat.coldGlass}>
+                <planeGeometry args={[d, h]} />
+            </mesh>
+            {/* Right */}
+            <mesh position={[w / 2, h / 2, 0]} rotation={[0, -Math.PI / 2, 0]} material={sharedMat.coldGlass}>
+                <planeGeometry args={[d, h]} />
+            </mesh>
+            {/* Top */}
+            <mesh position={[0, h, 0]} rotation={[-Math.PI / 2, 0, 0]} material={sharedMat.coldGlass}>
+                <planeGeometry args={[w, d]} />
+            </mesh>
+
+            {/* Frost effect - subtle blue floor */}
+            <mesh position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                <planeGeometry args={[w, d]} />
+                <meshStandardMaterial color="#a5f3fc" transparent opacity={0.15} />
+            </mesh>
+
+            {/* Blue ambient light inside */}
+            <pointLight color="#67e8f9" intensity={0.4} distance={8} position={[0, 2.5, 0]} />
+
+            <TextSprite text="❄ Chambre Froide" position={[0, h + 0.5, 0]} scale={1.0} bgColor="rgba(6, 182, 212, 0.9)" />
+        </group>
+    );
+});
+
+// ---- FIRE EXTINGUISHER ----
+const FireExtinguisher = React.memo(({ position }) => {
+    return (
+        <group position={position}>
+            {/* Wall bracket */}
+            <mesh position={[0, 1, 0]}>
+                <boxGeometry args={[0.1, 0.3, 0.08]} />
+                <meshStandardMaterial color="#475569" metalness={0.7} />
+            </mesh>
+            {/* Cylinder */}
+            <mesh position={[0, 0.7, 0.05]}>
+                <cylinderGeometry args={[0.06, 0.06, 0.45, 8]} />
+                <meshStandardMaterial color="#dc2626" roughness={0.4} />
+            </mesh>
+            {/* Nozzle */}
+            <mesh position={[0, 0.95, 0.05]}>
+                <cylinderGeometry args={[0.02, 0.03, 0.08, 6]} />
+                <meshStandardMaterial color="#1e293b" />
+            </mesh>
+        </group>
+    );
+});
+
+// ---- PALLET (ambient detail) ----
+const Pallet = React.memo(({ position, rotation = 0 }) => {
+    return (
+        <group position={position} rotation={[0, rotation, 0]}>
+            {/* Planks */}
+            {[-0.15, 0, 0.15].map((z, i) => (
+                <mesh key={`p-${i}`} position={[0, 0.02, z]}>
+                    <boxGeometry args={[0.5, 0.03, 0.12]} />
+                    <meshStandardMaterial color="#a16207" roughness={0.9} />
+                </mesh>
+            ))}
+            {/* Supports */}
+            {[-0.2, 0, 0.2].map((x, i) => (
+                <mesh key={`s-${i}`} position={[x, 0.06, 0]}>
+                    <boxGeometry args={[0.08, 0.05, 0.4]} />
+                    <meshStandardMaterial color="#92400e" roughness={0.9} />
+                </mesh>
+            ))}
+        </group>
+    );
+});
+
 // ---- RACK (Realistic shelving unit) ----
 const RackMesh = React.memo(({ zone, isHovered, onHover, onUnhover }) => {
     const { color } = useMemo(() => parseColor(zone.color), [zone.color]);
@@ -144,13 +499,14 @@ const RackMesh = React.memo(({ zone, isHovered, onHover, onUnhover }) => {
     const cx = (zone.x + zone.width / 2 - MAP_W / 2) * SCALE;
     const cz = (zone.y + zone.height / 2 - MAP_H / 2) * SCALE;
 
-    // For very small zones, skip detailed rack → just render a simple box
     const isSmall = w < 0.8 || d < 0.8;
     const isFlat = zone.type === 'workstation' || zone.type === 'inbound' || zone.type === 'outbound';
 
-    // Stock material per zone
+    // Stock warning color
+    const isRupture = zone.stock !== undefined && zone.stock <= 0;
+    const isLow = zone.stock !== undefined && zone.threshold && zone.stock <= zone.threshold;
+
     const stockMat = useMemo(() => {
-        // Mute the zone color slightly to simulate realistic matte plastic bins
         const baseColor = new THREE.Color(color);
         const plasticColor = baseColor.lerp(new THREE.Color(0xffffff), 0.15);
         return new THREE.MeshStandardMaterial({
@@ -160,14 +516,6 @@ const RackMesh = React.memo(({ zone, isHovered, onHover, onUnhover }) => {
         });
     }, [color]);
 
-    const hoverMat = useMemo(() => new THREE.MeshStandardMaterial({
-        color: '#ffffff',
-        transparent: true,
-        opacity: 0.15,
-        depthWrite: false,
-    }), []);
-
-    // Build shelves and posts procedurally
     const shelves = useMemo(() => {
         const arr = [];
         for (let i = 0; i <= shelfCount; i++) {
@@ -176,14 +524,11 @@ const RackMesh = React.memo(({ zone, isHovered, onHover, onUnhover }) => {
         return arr;
     }, [shelfCount, h]);
 
-    // Determine how many shelves have stock (bottom-up fill)
     const filledShelves = Math.ceil(fillRatio * shelfCount);
 
     if (isSmall || isFlat) {
-        // Simple flat zone for workstations/small zones
         return (
             <group position={[cx, 0, cz]}>
-                {/* Floor marker */}
                 <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}
                     onPointerOver={(e) => { e.stopPropagation(); onHover(zone); }}
                     onPointerOut={(e) => { e.stopPropagation(); onUnhover(); }}
@@ -191,7 +536,6 @@ const RackMesh = React.memo(({ zone, isHovered, onHover, onUnhover }) => {
                     <planeGeometry args={[w, d]} />
                     <meshStandardMaterial color={color} transparent opacity={isFlat ? 0.15 : 0.6} side={THREE.DoubleSide} />
                 </mesh>
-                {/* Border */}
                 <lineSegments rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, 0]}>
                     <edgesGeometry args={[new THREE.PlaneGeometry(w, d)]} />
                     <lineBasicMaterial color={isHovered ? '#00ffff' : '#888'} />
@@ -243,13 +587,11 @@ const RackMesh = React.memo(({ zone, isHovered, onHover, onUnhover }) => {
                 <meshStandardMaterial color="#8896a5" transparent opacity={0.08} side={THREE.DoubleSide} />
             </mesh>
 
-            {/* Stock boxes on shelves (multiple individual boxes for realism) */}
+            {/* Stock boxes on shelves */}
             {shelves.slice(0, -1).map((sy, i) => {
                 if (i >= filledShelves) return null;
                 const shelfHeight = h / shelfCount;
                 const boxH = shelfHeight * 0.7;
-
-                // Calculate how many distinct boxes we can fit side-by-side
                 const numBoxes = Math.max(1, Math.floor(w / 0.8));
                 const totalPadding = 0.05 * (numBoxes + 1);
                 const boxW = (w * 0.9 - totalPadding) / numBoxes;
@@ -262,6 +604,22 @@ const RackMesh = React.memo(({ zone, isHovered, onHover, onUnhover }) => {
                     />
                 ));
             })}
+
+            {/* Rupture indicator: red glow on floor */}
+            {isRupture && (
+                <mesh position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                    <planeGeometry args={[w + 0.2, d + 0.2]} />
+                    <meshStandardMaterial color="#ef4444" emissive="#dc2626" emissiveIntensity={0.5} transparent opacity={0.3} />
+                </mesh>
+            )}
+
+            {/* Low stock indicator: amber glow */}
+            {isLow && !isRupture && (
+                <mesh position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                    <planeGeometry args={[w + 0.1, d + 0.1]} />
+                    <meshStandardMaterial color="#f59e0b" emissive="#d97706" emissiveIntensity={0.3} transparent opacity={0.15} />
+                </mesh>
+            )}
 
             {/* Highlight border on hover */}
             {isHovered && (
@@ -277,118 +635,291 @@ const RackMesh = React.memo(({ zone, isHovered, onHover, onUnhover }) => {
     );
 });
 
-// ---- AGENT (Human-like figure) ----
+// ---- AGENT (Human-like figure with Chariot) ----
 const AgentMesh = React.memo(({ agent }) => {
     const isStorekeeper = agent.type === 'Storekeeper';
     const isController = agent.type === 'Controller';
     const agentColor = isStorekeeper ? '#3b82f6' : isController ? '#10b981' : '#ef4444';
 
-    // Animation refs
     const groupRef = useRef();
     const leftLegRef = useRef();
     const rightLegRef = useRef();
+    const leftArmRef = useRef();
+    const rightArmRef = useRef();
     const upperBodyRef = useRef();
+    const wheelsRef = useRef([]);
+    const prevPos = useRef({ x: 0, z: 0 });
+    const facingAngle = useRef(0);
 
     const [initialX, , initialZ] = to3D(agent.x, agent.y);
 
-    const bodyMat = useMemo(() => new THREE.MeshStandardMaterial({
-        color: agentColor,
-        roughness: 0.5,
-        metalness: 0.1,
-    }), [agentColor]);
-
     const vestMat = useMemo(() => new THREE.MeshStandardMaterial({
         color: isStorekeeper ? '#1d4ed8' : isController ? '#059669' : '#dc2626',
-        emissive: agentColor,
-        emissiveIntensity: 0.2,
-        roughness: 0.6,
+        emissive: agentColor, emissiveIntensity: 0.15, roughness: 0.6,
     }), [agentColor, isStorekeeper, isController]);
 
-    const ringMat = useMemo(() => new THREE.MeshBasicMaterial({
-        color: agentColor,
-        transparent: true,
-        opacity: 0.4,
-        side: THREE.DoubleSide,
-    }), [agentColor]);
+    // State-based aura color
+    const auraColor = useMemo(() => {
+        const s = agent.state;
+        if (s === 'idle') return '#3b82f6';
+        if (s === 'picking_order') return '#22c55e';
+        if (s === 'controlling') return '#a855f7';
+        if (s?.startsWith('delivering')) return '#f97316';
+        if (s?.startsWith('moving')) return '#eab308';
+        return '#6b7280';
+    }, [agent.state]);
 
-    // Animate walk and rotation
+    const ringMat = useMemo(() => new THREE.MeshBasicMaterial({
+        color: auraColor, transparent: true, opacity: 0.5, side: THREE.DoubleSide,
+    }), [auraColor]);
+
+    const isAtRack = (agent.state === 'picking_order' && (!agent.path || agent.path.length === 0))
+        || (agent.state === 'depositing_reserve' && (!agent.path || agent.path.length === 0));
+
+    const carryCount = agent.carrying || 0;
+    const boxCount = Math.min(Math.ceil(carryCount / 8), 8);
+
+    // Determine if agent should be walking based on STATE
+    const agentIsMoving = agent.state !== 'idle' && agent.state !== 'controlling'
+        && !isAtRack && agent.state !== 'depositing_reserve';
+
     useFrame((state) => {
         if (!groupRef.current) return;
-
         const [targetX, , targetZ] = to3D(agent.x, agent.y);
+        const t = state.clock.elapsedTime;
 
-        // Interpolate position for smooth movement
-        groupRef.current.position.x = THREE.MathUtils.lerp(groupRef.current.position.x, targetX, 0.15);
-        groupRef.current.position.z = THREE.MathUtils.lerp(groupRef.current.position.z, targetZ, 0.15);
+        // Slow lerp = visible smooth movement
+        groupRef.current.position.x = THREE.MathUtils.lerp(groupRef.current.position.x, targetX, 0.06);
+        groupRef.current.position.z = THREE.MathUtils.lerp(groupRef.current.position.z, targetZ, 0.06);
 
-        const dx = targetX - groupRef.current.position.x;
-        const dz = targetZ - groupRef.current.position.z;
-        const velocity = Math.sqrt(dx * dx + dz * dz);
+        const curX = groupRef.current.position.x;
+        const curZ = groupRef.current.position.z;
 
-        if (velocity > 0.02) {
-            // Rotate towards movement direction
-            const angle = Math.atan2(dx, dz);
+        // Frame-to-frame movement detection
+        const dx = curX - prevPos.current.x;
+        const dz = curZ - prevPos.current.z;
+        const frameDist = Math.sqrt(dx * dx + dz * dz);
+        prevPos.current.x = curX;
+        prevPos.current.z = curZ;
+
+        // Calculate facing angle from movement
+        if (frameDist > 0.0005) {
+            facingAngle.current = Math.atan2(dx, dz);
+        }
+
+        // Walking: true if agent state says moving OR we detect frame movement
+        const isWalking = agentIsMoving || frameDist > 0.001;
+
+        if (isWalking) {
+            // Smoothly rotate agent (and chariot, since it's a child) toward facing direction
             let rotY = groupRef.current.rotation.y;
-            // Shortest path wrapping
-            while (angle - rotY > Math.PI) rotY += Math.PI * 2;
-            while (rotY - angle > Math.PI) rotY -= Math.PI * 2;
-            groupRef.current.rotation.y = THREE.MathUtils.lerp(rotY, angle, 0.2);
+            const target = facingAngle.current;
+            while (target - rotY > Math.PI) rotY += Math.PI * 2;
+            while (rotY - target > Math.PI) rotY -= Math.PI * 2;
+            groupRef.current.rotation.y = THREE.MathUtils.lerp(rotY, target, 0.12);
 
-            // Walk animation
-            const t = state.clock.elapsedTime * 15;
-            if (leftLegRef.current && rightLegRef.current && upperBodyRef.current) {
-                leftLegRef.current.rotation.x = Math.sin(t) * 0.6;
-                rightLegRef.current.rotation.x = Math.sin(t + Math.PI) * 0.6;
-                upperBodyRef.current.position.y = Math.abs(Math.sin(t * 2)) * 0.05;
+            // Walking animation
+            const walkT = t * 10;
+            if (leftLegRef.current && rightLegRef.current) {
+                leftLegRef.current.rotation.x = Math.sin(walkT) * 0.9;
+                rightLegRef.current.rotation.x = Math.sin(walkT + Math.PI) * 0.9;
             }
+            if (leftArmRef.current && rightArmRef.current) {
+                leftArmRef.current.rotation.x = Math.sin(walkT + Math.PI) * 0.6;
+                rightArmRef.current.rotation.x = Math.sin(walkT) * 0.6;
+            }
+            if (upperBodyRef.current) {
+                upperBodyRef.current.position.y = Math.abs(Math.sin(walkT * 2)) * 0.06;
+                upperBodyRef.current.rotation.z = Math.sin(walkT) * 0.05;
+            }
+            wheelsRef.current.forEach(w => { if (w) w.rotation.x += 0.2; });
         } else {
-            // Idle stance reset
-            if (leftLegRef.current && rightLegRef.current && upperBodyRef.current) {
-                leftLegRef.current.rotation.x = THREE.MathUtils.lerp(leftLegRef.current.rotation.x, 0, 0.1);
-                rightLegRef.current.rotation.x = THREE.MathUtils.lerp(rightLegRef.current.rotation.x, 0, 0.1);
-                upperBodyRef.current.position.y = THREE.MathUtils.lerp(upperBodyRef.current.position.y, 0, 0.1);
+            // Idle / at rack — smoothly return to neutral
+            const breathe = Math.sin(t * 2) * 0.008;
+            if (leftLegRef.current) leftLegRef.current.rotation.x = THREE.MathUtils.lerp(leftLegRef.current.rotation.x, 0, 0.08);
+            if (rightLegRef.current) rightLegRef.current.rotation.x = THREE.MathUtils.lerp(rightLegRef.current.rotation.x, 0, 0.08);
+            if (upperBodyRef.current) {
+                upperBodyRef.current.position.y = THREE.MathUtils.lerp(upperBodyRef.current.position.y, breathe, 0.08);
+                upperBodyRef.current.rotation.z = THREE.MathUtils.lerp(upperBodyRef.current.rotation.z, 0, 0.08);
+            }
+
+            if (isAtRack) {
+                if (leftArmRef.current) leftArmRef.current.rotation.x = THREE.MathUtils.lerp(leftArmRef.current.rotation.x, -1.1, 0.07);
+                if (rightArmRef.current) rightArmRef.current.rotation.x = THREE.MathUtils.lerp(rightArmRef.current.rotation.x, -1.1 + Math.sin(t * 3.5) * 0.3, 0.07);
+            } else {
+                if (leftArmRef.current) leftArmRef.current.rotation.x = THREE.MathUtils.lerp(leftArmRef.current.rotation.x, 0, 0.08);
+                if (rightArmRef.current) rightArmRef.current.rotation.x = THREE.MathUtils.lerp(rightArmRef.current.rotation.x, 0, 0.08);
             }
         }
     });
 
     return (
         <group ref={groupRef} position={[initialX, 0, initialZ]}>
-            {/* Ground ring indicator */}
+            {/* Aura ring */}
             <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}
                 geometry={sharedGeo.ring} material={ringMat} />
 
-            {/* Left Leg Pivot */}
+            {/* Left Leg */}
             <group ref={leftLegRef} position={[-0.07, 0.35, 0]}>
-                <mesh castShadow receiveShadow geometry={sharedGeo.legs} material={bodyMat} position={[0, -0.175, 0]} />
+                <mesh castShadow geometry={sharedGeo.legs} material={sharedMat.pantsMat} position={[0, -0.175, 0]} />
+                <mesh geometry={sharedGeo.shoe} material={sharedMat.shoeMat} position={[0, -0.35, 0.03]} />
             </group>
 
-            {/* Right Leg Pivot */}
+            {/* Right Leg */}
             <group ref={rightLegRef} position={[0.07, 0.35, 0]}>
-                <mesh castShadow receiveShadow geometry={sharedGeo.legs} material={bodyMat} position={[0, -0.175, 0]} />
+                <mesh castShadow geometry={sharedGeo.legs} material={sharedMat.pantsMat} position={[0, -0.175, 0]} />
+                <mesh geometry={sharedGeo.shoe} material={sharedMat.shoeMat} position={[0, -0.35, 0.03]} />
             </group>
 
-            {/* Upper body (bobs up and down) */}
+            {/* Upper Body */}
             <group ref={upperBodyRef}>
-                {/* Body / Torso (vest) */}
-                <mesh castShadow receiveShadow geometry={sharedGeo.body} material={vestMat} position={[0, 0.6, 0]} />
+                {/* Torso */}
+                <mesh castShadow geometry={sharedGeo.body} material={vestMat} position={[0, 0.6, 0]} />
+
+                {/* Left Arm */}
+                <group ref={leftArmRef} position={[-0.18, 0.75, 0]}>
+                    <mesh castShadow geometry={sharedGeo.arm} material={vestMat} position={[0, -0.175, 0]} />
+                    <mesh geometry={sharedGeo.hand} material={sharedMat.skinMat} position={[0, -0.36, 0]} />
+                </group>
+
+                {/* Right Arm */}
+                <group ref={rightArmRef} position={[0.18, 0.75, 0]}>
+                    <mesh castShadow geometry={sharedGeo.arm} material={vestMat} position={[0, -0.175, 0]} />
+                    <mesh geometry={sharedGeo.hand} material={sharedMat.skinMat} position={[0, -0.36, 0]} />
+                </group>
 
                 {/* Head */}
-                <mesh castShadow receiveShadow geometry={sharedGeo.head} material={sharedMat.skinMat} position={[0, 0.95, 0]} />
-
+                <mesh castShadow geometry={sharedGeo.head} material={sharedMat.skinMat} position={[0, 0.95, 0]} />
                 {/* Hard hat */}
-                <mesh castShadow receiveShadow position={[0, 1.05, 0]}>
-                    <sphereGeometry args={[0.13, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2]} />
-                    <meshStandardMaterial color={isController ? '#10b981' : isStorekeeper ? '#fbbf24' : '#fb923c'} roughness={0.4} metalness={0.1} />
+                <mesh castShadow position={[0, 1.05, 0]}>
+                    <sphereGeometry args={[0.14, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2]} />
+                    <meshStandardMaterial
+                        color={isController ? '#10b981' : isStorekeeper ? '#fbbf24' : '#fb923c'}
+                        roughness={0.3} metalness={0.2}
+                    />
                 </mesh>
             </group>
 
-            {/* ID label */}
-            <TextSprite
-                text={agent.id}
-                position={[0, 1.5, 0]}
-                scale={0.8}
-                bgColor={agentColor}
-            />
+            {/* ---- CHARIOT (Large Medicine Cart) — not for Controller ---- */}
+            {!isController && <group position={[0, 0, 0.9]}>
+                {/* Push handle — U-shape angled back toward agent */}
+                {[-0.3, 0.3].map((x, i) => (
+                    <mesh key={`hbar-${i}`} position={[x, 0.7, -0.38]} rotation={[-0.35, 0, 0]} material={sharedMat.chariotMetal}>
+                        <cylinderGeometry args={[0.018, 0.018, 0.65, 8]} />
+                    </mesh>
+                ))}
+                <mesh position={[0, 0.95, -0.5]} material={sharedMat.chariotMetal}>
+                    <boxGeometry args={[0.62, 0.025, 0.025]} />
+                </mesh>
+                {/* Grip rubber */}
+                <mesh position={[0, 0.95, -0.5]}>
+                    <boxGeometry args={[0.5, 0.032, 0.032]} />
+                    <meshStandardMaterial color="#333" roughness={0.95} />
+                </mesh>
+
+                {/* Lower shelf (basket-style) */}
+                <mesh position={[0, 0.18, 0]} material={sharedMat.chariotShelf}>
+                    <boxGeometry args={[0.7, 0.025, 0.5]} />
+                </mesh>
+                {/* Lower shelf rim */}
+                {[[-0.35, 0], [0.35, 0], [0, -0.25], [0, 0.25]].map(([x, z], i) => (
+                    <mesh key={`lr-${i}`} position={[x, 0.22, z]} material={sharedMat.chariotMetal}>
+                        <boxGeometry args={[i < 2 ? 0.015 : 0.7, 0.06, i < 2 ? 0.5 : 0.015]} />
+                    </mesh>
+                ))}
+
+                {/* Upper shelf */}
+                <mesh position={[0, 0.48, 0]} material={sharedMat.chariotShelf}>
+                    <boxGeometry args={[0.7, 0.025, 0.5]} />
+                </mesh>
+
+                {/* Side guard rails */}
+                {[-0.35, 0.35].map((x, i) => (
+                    <React.Fragment key={`siderail-${i}`}>
+                        {/* Vertical posts */}
+                        <mesh position={[x, 0.33, -0.24]} material={sharedMat.chariotMetal}>
+                            <cylinderGeometry args={[0.012, 0.012, 0.35, 6]} />
+                        </mesh>
+                        <mesh position={[x, 0.33, 0.24]} material={sharedMat.chariotMetal}>
+                            <cylinderGeometry args={[0.012, 0.012, 0.35, 6]} />
+                        </mesh>
+                        <mesh position={[x, 0.33, 0]} material={sharedMat.chariotMetal}>
+                            <cylinderGeometry args={[0.012, 0.012, 0.35, 6]} />
+                        </mesh>
+                        {/* Horizontal cross bar */}
+                        <mesh position={[x, 0.5, 0]} rotation={[Math.PI / 2, 0, 0]} material={sharedMat.chariotMetal}>
+                            <cylinderGeometry args={[0.01, 0.01, 0.5, 6]} />
+                        </mesh>
+                    </React.Fragment>
+                ))}
+                {/* Back guard rail */}
+                <mesh position={[0, 0.5, -0.25]} material={sharedMat.chariotMetal}>
+                    <boxGeometry args={[0.7, 0.015, 0.015]} />
+                </mesh>
+
+                {/* Legs (4 corner tubes) */}
+                {[[-0.32, -0.22], [0.32, -0.22], [-0.32, 0.22], [0.32, 0.22]].map(([x, z], i) => (
+                    <mesh key={`cl-${i}`} position={[x, 0.09, z]} material={sharedMat.chariotMetal}>
+                        <cylinderGeometry args={[0.015, 0.015, 0.18, 6]} />
+                    </mesh>
+                ))}
+
+                {/* Wheels (larger, with rubber tire + metal hub) */}
+                {[[-0.33, -0.23], [0.33, -0.23], [-0.33, 0.23], [0.33, 0.23]].map(([x, z], i) => (
+                    <group key={`wg-${i}`} position={[x, 0.04, z]}>
+                        {/* Rubber tire */}
+                        <mesh ref={el => wheelsRef.current[i] = el}
+                            rotation={[0, 0, Math.PI / 2]}
+                            material={sharedMat.wheelMat}>
+                            <cylinderGeometry args={[0.04, 0.04, 0.022, 12]} />
+                        </mesh>
+                        {/* Metal hub */}
+                        <mesh rotation={[0, 0, Math.PI / 2]}>
+                            <cylinderGeometry args={[0.018, 0.018, 0.026, 8]} />
+                            <meshStandardMaterial color="#aaa" metalness={0.8} roughness={0.2} />
+                        </mesh>
+                        {/* Caster fork */}
+                        <mesh position={[0, 0.035, 0]} material={sharedMat.chariotMetal}>
+                            <boxGeometry args={[0.01, 0.03, 0.04]} />
+                        </mesh>
+                    </group>
+                ))}
+
+                {/* Medicine boxes on cart (based on carrying count) */}
+                {Array.from({ length: boxCount }).map((_, i) => {
+                    const shelf = i < 4 ? 0 : 1;
+                    const col = i % 4;
+                    const y = shelf === 0 ? 0.22 : 0.52;
+                    const x = (col - 1.5) * 0.16;
+                    return (
+                        <mesh key={`mb-${i}`} position={[x, y, 0]}>
+                            <boxGeometry args={[0.13, 0.09, 0.12]} />
+                            <meshStandardMaterial color={MEDICINE_COLORS[i % 6]} roughness={0.5} />
+                        </mesh>
+                    );
+                })}
+            </group>}
+
+            {/* Controller clipboard */}
+            {isController && (
+                <group position={[0.22, 0.45, 0.05]} rotation={[0.3, 0, 0.1]}>
+                    <mesh>
+                        <boxGeometry args={[0.15, 0.2, 0.015]} />
+                        <meshStandardMaterial color="#92400e" roughness={0.8} />
+                    </mesh>
+                    <mesh position={[0, 0.02, 0.01]}>
+                        <boxGeometry args={[0.12, 0.16, 0.005]} />
+                        <meshStandardMaterial color="#fefce8" roughness={0.5} />
+                    </mesh>
+                    <mesh position={[0, 0.11, 0]}>
+                        <boxGeometry args={[0.06, 0.02, 0.02]} />
+                        <meshStandardMaterial color="#71717a" metalness={0.7} />
+                    </mesh>
+                </group>
+            )}
+
+            {/* Label */}
+            <TextSprite text={agent.id} position={[0, 1.5, 0]} scale={0.8} bgColor={agentColor} />
         </group>
     );
 });
@@ -435,22 +966,63 @@ const Floor = React.memo(() => {
     const floorH = MAP_H * SCALE;
     const edgesGeo = useMemo(() => new THREE.EdgesGeometry(new THREE.PlaneGeometry(floorW, floorH)), []);
 
+    // Expansion joint positions
+    const joints = useMemo(() => {
+        const arr = [];
+        for (let i = -3; i <= 3; i++) {
+            arr.push({ x: i * (floorW / 6), z: 0, rot: 0, len: floorH });
+            arr.push({ x: 0, z: i * (floorH / 6), rot: Math.PI / 2, len: floorW });
+        }
+        return arr;
+    }, [floorW, floorH]);
+
     return (
         <group>
-            {/* Concrete floor */}
+            {/* Polished epoxy concrete floor */}
             <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]}>
                 <planeGeometry args={[floorW, floorH]} />
-                <meshStandardMaterial color="#b3b8c2" roughness={0.9} metalness={0.05} />
+                <meshStandardMaterial color="#c4cad4" roughness={0.35} metalness={0.08} />
             </mesh>
-            {/* Border */}
             <lineSegments rotation={[-Math.PI / 2, 0, 0]} geometry={edgesGeo} material={sharedMat.floorBorder} />
-            {/* Subtle grid */}
-            <gridHelper args={[Math.max(floorW, floorH), 30, '#c8cdd3', '#dde1e6']} position={[0, 0.001, 0]} />
+            <gridHelper args={[Math.max(floorW, floorH), 40, '#bcc3cc', '#d4d9e0']} position={[0, 0.001, 0]} />
+
+            {/* Expansion joints */}
+            {joints.map((j, i) => (
+                <mesh key={`joint-${i}`} position={[j.x, 0.002, j.z]} rotation={[-Math.PI / 2, j.rot, 0]}>
+                    <planeGeometry args={[j.len, 0.015]} />
+                    <meshStandardMaterial color="#9ca3af" transparent opacity={0.3} />
+                </mesh>
+            ))}
         </group>
     );
 });
 
-// ---- TOOLTIP (React DOM overlay) ----
+// ---- BOLLARDS (Safety pillars) ----
+const Bollards = React.memo(() => {
+    const fw = MAP_W * SCALE;
+    const fh = MAP_H * SCALE;
+    const positions = [
+        [-fw / 3, -fh / 4], [fw / 4, -fh / 4], [-fw / 3, fh / 4], [fw / 4, fh / 4],
+        [-fw / 6, 0], [fw / 6, 0], [0, -fh / 3], [0, fh / 3],
+    ];
+    return (
+        <group>
+            {positions.map(([x, z], i) => (
+                <group key={`bollard-${i}`} position={[x, 0, z]}>
+                    <mesh position={[0, 0.25, 0]} material={sharedMat.bollardMat}>
+                        <cylinderGeometry args={[0.06, 0.08, 0.5, 8]} />
+                    </mesh>
+                    <mesh position={[0, 0.52, 0]}>
+                        <cylinderGeometry args={[0.07, 0.07, 0.03, 8]} />
+                        <meshStandardMaterial color="#111" roughness={0.8} />
+                    </mesh>
+                </group>
+            ))}
+        </group>
+    );
+});
+
+// ---- TOOLTIP ----
 const TooltipOverlay = ({ zone, camera, size }) => {
     if (!zone) return null;
     const cx = (zone.x + zone.width / 2 - MAP_W / 2) * SCALE;
@@ -496,7 +1068,7 @@ const TooltipOverlay = ({ zone, camera, size }) => {
     );
 };
 
-// ---- BRIDGE for tooltip projection ----
+// ---- BRIDGE for tooltip ----
 const TooltipBridge = ({ hoveredZone, setTooltipData }) => {
     const { camera, size } = useThree();
     useFrame(() => {
@@ -505,7 +1077,7 @@ const TooltipBridge = ({ hoveredZone, setTooltipData }) => {
     return null;
 };
 
-// ---- CONVEYOR BELT (Tapis Roulant) ----
+// ---- CONVEYOR BELT ----
 const Conveyor3D = React.memo(({ zone, conveyorQueue }) => {
     const w = zone.width * SCALE;
     const d = zone.height * SCALE;
@@ -514,16 +1086,14 @@ const Conveyor3D = React.memo(({ zone, conveyorQueue }) => {
     const rollerCount = Math.max(3, Math.floor(w / 0.2));
     const rollersRef = useRef([]);
 
-    // Animate rollers spinning
     useFrame(() => {
         rollersRef.current.forEach(r => {
-            if (r) r.rotation.y -= 0.15; // Rotate around local Y (which points along world Z) to roll along X
+            if (r) r.rotation.y -= 0.15;
         });
     });
 
     return (
         <group position={[cx, 0.4, cz]}>
-            {/* Belt surface — dark rubber */}
             <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
                 <planeGeometry args={[w, d]} />
                 <meshStandardMaterial color="#2d2d2d" roughness={0.9} />
@@ -539,7 +1109,7 @@ const Conveyor3D = React.memo(({ zone, conveyorQueue }) => {
                 <meshStandardMaterial color="#64748b" metalness={0.8} roughness={0.2} />
             </mesh>
 
-            {/* Rollers (spinning cylinders) */}
+            {/* Rollers */}
             {Array.from({ length: rollerCount }, (_, i) => {
                 const lx = -w / 2 + (i + 0.5) * (w / rollerCount);
                 return (
@@ -553,7 +1123,7 @@ const Conveyor3D = React.memo(({ zone, conveyorQueue }) => {
                 );
             })}
 
-            {/* Legs / supports */}
+            {/* Legs */}
             {[-w / 2, 0, w / 2].map((lx, i) => (
                 <mesh key={`leg-${i}`} position={[lx, -0.12, 0]}>
                     <cylinderGeometry args={[0.025, 0.025, 0.2, 6]} />
@@ -561,7 +1131,7 @@ const Conveyor3D = React.memo(({ zone, conveyorQueue }) => {
                 </mesh>
             ))}
 
-            {/* Boxes sliding along the belt */}
+            {/* Boxes sliding along */}
             {(conveyorQueue || []).map((box, i) => {
                 const bx = -w / 2 + box.progress * w;
                 return (
@@ -582,18 +1152,43 @@ const SceneContent = ({ onHover, onUnhover, hoveredZoneId, hoveredZone, setToolt
     const { agents, layoutConfig: config, conveyorQueue } = useWarehouseStore();
     if (!config) return null;
 
+    const fw = MAP_W * SCALE;
+    const fh = MAP_H * SCALE;
+
     return (
         <>
-            {/* Lighting */}
-            <ambientLight intensity={0.4} color="#e8ecf0" />
-            <directionalLight castShadow position={[25, 35, 15]} intensity={1.1} color="#fffaf0"
+            {/* Enhanced Lighting */}
+            <ambientLight intensity={0.35} color="#e8ecf0" />
+            <directionalLight castShadow position={[25, 35, 15]} intensity={1.0} color="#fffaf0"
                 shadow-mapSize-width={2048} shadow-mapSize-height={2048} shadow-bias={-0.0005}
                 shadow-camera-far={100} shadow-camera-left={-40} shadow-camera-right={40} shadow-camera-top={40} shadow-camera-bottom={-40} />
-            <directionalLight position={[-15, 20, -10]} intensity={0.4} color="#e0e8ff" />
+            <directionalLight position={[-15, 20, -10]} intensity={0.35} color="#e0e8ff" />
             <hemisphereLight args={['#dce6f2', '#8291a1', 0.4]} />
 
             <Floor />
+            <Walls />
+            <Ceiling />
+            <CeilingLights />
+            <FloorMarkings />
+            <SafetyZones />
+            <LoadingDock />
+            <ColdStorage />
             <GraphOverlay nodes={config.nodes} edges={config.edges} />
+
+            {/* Fire extinguishers */}
+            <FireExtinguisher position={[-fw / 2 + 0.3, 0, -fh / 4]} />
+            <FireExtinguisher position={[fw / 4, 0, -fh / 2 + 0.3]} />
+            <FireExtinguisher position={[-fw / 2 + 0.3, 0, fh / 4]} />
+
+            {/* Bollards */}
+            <Bollards />
+
+            {/* Scattered pallets */}
+            <Pallet position={[-fw / 3, 0, fh / 3 - 1]} rotation={0.3} />
+            <Pallet position={[fw / 5, 0, -fh / 4]} rotation={-0.5} />
+            <Pallet position={[-fw / 6, 0, fh / 5]} rotation={1.2} />
+            <Pallet position={[fw / 3.5, 0, fh / 3]} rotation={0.7} />
+            <Pallet position={[-fw / 4, 0, -fh / 3]} rotation={-0.2} />
 
             {config.zones.filter(z => z.type !== 'conveyor').map(zone => (
                 <RackMesh key={zone.id} zone={zone}
@@ -601,7 +1196,6 @@ const SceneContent = ({ onHover, onUnhover, hoveredZoneId, hoveredZone, setToolt
                     onHover={onHover} onUnhover={onUnhover} />
             ))}
 
-            {/* Conveyor zones */}
             {config.zones.filter(z => z.type === 'conveyor').map(zone => (
                 <Conveyor3D key={zone.id} zone={zone} conveyorQueue={conveyorQueue} />
             ))}

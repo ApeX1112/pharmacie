@@ -1,15 +1,17 @@
 import React, { useRef, useState } from 'react';
 import useWarehouseStore from '../store/useWarehouseStore';
-import { Play, Pause, Upload, List, Plus, Settings, Shuffle } from 'lucide-react';
+import { Play, Pause, Upload, List, Plus, Settings, Shuffle, FlaskConical } from 'lucide-react';
 import { parseExcelOrders } from '../utils/ExcelImporter';
 import OrderList from './OrderList';
 import ArrivalsModal from './ArrivalsModal';
+import ScenariosPanel from './ScenariosPanel';
 
 const Sidebar = () => {
     const { isPlaying, togglePlay, simulationSpeed, setSpeed, addOrder, randomizeStock } = useWarehouseStore();
     const fileInputRef = useRef(null);
     const [showOrderList, setShowOrderList] = useState(false);
     const [showArrivalsConfig, setShowArrivalsConfig] = useState(false);
+    const [showScenarios, setShowScenarios] = useState(false);
 
     const handleFileUpload = async (e) => {
         const file = e.target.files[0];
@@ -27,7 +29,6 @@ const Sidebar = () => {
     };
 
     const handleAddRandomOrder = () => {
-        // Dynamic list of picking zones
         const config = useWarehouseStore.getState().layoutConfig;
         if (!config) return;
 
@@ -92,6 +93,12 @@ const Sidebar = () => {
                     >
                         5x
                     </button>
+                    <button
+                        onClick={() => setSpeed(20)}
+                        className={`p-1 rounded ${simulationSpeed === 20 ? 'bg-blue-600' : 'hover:bg-slate-700'}`}
+                    >
+                        20x
+                    </button>
                 </div>
 
                 <div className="flex flex-col items-center space-y-1">
@@ -102,6 +109,18 @@ const Sidebar = () => {
                         title="Configurer les Arrivées"
                     >
                         <Settings size={24} />
+                    </button>
+                </div>
+
+                {/* Scenarios Button */}
+                <div className="flex flex-col items-center space-y-1">
+                    <span className="text-xs text-gray-400">What-If</span>
+                    <button
+                        onClick={() => setShowScenarios(true)}
+                        className="p-2 hover:bg-slate-700 rounded transition text-purple-400"
+                        title="Scénarios What-If"
+                    >
+                        <FlaskConical size={24} />
                     </button>
                 </div>
 
@@ -147,6 +166,7 @@ const Sidebar = () => {
 
             {showOrderList && <OrderList onClose={() => setShowOrderList(false)} />}
             {showArrivalsConfig && <ArrivalsModal isOpen={showArrivalsConfig} onClose={() => setShowArrivalsConfig(false)} />}
+            {showScenarios && <ScenariosPanel isOpen={showScenarios} onClose={() => setShowScenarios(false)} />}
         </>
     );
 };
