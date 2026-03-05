@@ -417,6 +417,11 @@
             "y": 167
         },
         {
+            "id": "n_conveyor_start",
+            "x": 380,
+            "y": 167
+        },
+        {
             "id": "n_shipping",
             "x": 50,
             "y": 140
@@ -644,6 +649,14 @@
         ],
         [
             "n_conveyor",
+            "n_pilulier_right"
+        ],
+        [
+            "n_conveyor",
+            "n_conveyor_start"
+        ],
+        [
+            "n_conveyor_start",
             "n_pilulier_right"
         ],
         [

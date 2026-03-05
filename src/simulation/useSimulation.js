@@ -38,8 +38,8 @@ export const useSimulation = () => {
             // Sync Agents
             useWarehouseStore.getState().updateAgents(updatedAgents);
 
-            // Sync Conveyor Queue
-            useWarehouseStore.getState().updateConveyorQueue(conveyorQueue || []);
+            // Sync Conveyor Queue (clone array to force React re-render of new boxes)
+            useWarehouseStore.getState().updateConveyorQueue([...(conveyorQueue || [])]);
 
             // Sync Metrics (basic + advanced)
             const currentMetrics = useWarehouseStore.getState().metrics;

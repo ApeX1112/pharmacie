@@ -1077,72 +1077,244 @@ const TooltipBridge = ({ hoveredZone, setTooltipData }) => {
     return null;
 };
 
-// ---- CONVEYOR BELT ----
+// ---- CONVEYOR BOX ANIMATION ----
+const ConveyorBox = React.memo(({ box, w, d }) => {
+    const groupRef = useRef();
+
+    useFrame(() => {
+        if (!groupRef.current || box.progress === undefined) return;
+
+        // Horizontal position: Clamp to 0 so it stays at the edge while dropping vertically
+        const clampedProgress = Math.max(0, box.progress);
+        const targetX = w / 2 - clampedProgress * w;
+
+        // Vertical drop animation: Maps progress from -0.05 -> 0 to Y from 0.6 -> 0.16
+        let targetY = 0.16; // Resting perfectly on top of the belt
+        if (box.progress < 0) {
+            // t goes from 0 (at -0.05) to 1 (at 0)
+            const t = 1 - (Math.abs(box.progress) / 0.05);
+            // Drop from Y=0.6 (picker hands) down to Y=0.16 (belt top)
+            targetY = THREE.MathUtils.lerp(0.6, 0.16, Math.max(0, Math.min(1, t)));
+        }
+
+        groupRef.current.position.x = THREE.MathUtils.lerp(groupRef.current.position.x, targetX, 0.15);
+        // Faster lerp for the drop to make it feel snappy like dropping a box
+        groupRef.current.position.y = THREE.MathUtils.lerp(groupRef.current.position.y, targetY, 0.3);
+    });
+
+    // Initial spawn position (progress < 0 puts it high up initially)
+    const initialY = box.progress < 0 ? 0.6 : 0.16;
+    const initialX = w / 2 - Math.max(0, box.progress) * w;
+
+    return (
+        <group ref={groupRef} position={[initialX, initialY, 0]}>
+            {/* Main box (Made larger: 0.22 width, 0.20 height) */}
+            <mesh castShadow>
+                <boxGeometry args={[0.22, 0.20, d * 0.65]} />
+                <meshStandardMaterial color={box.color || '#c0392b'} roughness={0.4} metalness={0.1} />
+            </mesh>
+            {/* Tape/seal on top (Y = half height = 0.10) */}
+            <mesh position={[0, 0.101, 0]}>
+                <boxGeometry args={[0.06, 0.002, d * 0.65]} />
+                <meshStandardMaterial color="#92400e" roughness={0.8} />
+            </mesh>
+            {/* Green checkmark tick for controlled boxes */}
+            {box.controlled && (
+                <group position={[0, 0.103, 0]}>
+                    <mesh position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                        <planeGeometry args={[0.12, 0.12]} />
+                        <meshStandardMaterial color="#22c55e" emissive="#16a34a" emissiveIntensity={0.5} />
+                    </mesh>
+                    <TextSprite text="✓" position={[0, 0.06, 0]} scale={0.4} bgColor="rgba(34, 197, 94, 0.95)" textColor="#fff" />
+                </group>
+            )}
+        </group>
+    );
+});
+
+// ---- CONVEYOR BELT (Enhanced with supports, tapis roulant, checkpoint) ----
 const Conveyor3D = React.memo(({ zone, conveyorQueue }) => {
     const w = zone.width * SCALE;
     const d = zone.height * SCALE;
     const cx = (zone.x + zone.width / 2 - MAP_W / 2) * SCALE;
     const cz = (zone.y + zone.height / 2 - MAP_H / 2) * SCALE;
-    const rollerCount = Math.max(3, Math.floor(w / 0.2));
+    const rollerCount = Math.max(8, Math.floor(w / 0.12));
     const rollersRef = useRef([]);
+    const beltRef = useRef();
+    const CONTROL_POINT = 0.45;
 
-    useFrame(() => {
+    useFrame((state) => {
+        // Animate rollers spinning
         rollersRef.current.forEach(r => {
-            if (r) r.rotation.y -= 0.15;
+            if (r) r.rotation.y -= 0.25;
         });
+        // Animate belt texture offset for tapis roulant effect
+        if (beltRef.current && beltRef.current.map) {
+            beltRef.current.map.offset.x -= 0.008;
+        }
     });
 
+    // Belt texture (procedural striped pattern)
+    const beltTexture = useMemo(() => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 128;
+        canvas.height = 32;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#1a1a2e';
+        ctx.fillRect(0, 0, 128, 32);
+        // Tread pattern
+        for (let i = 0; i < 128; i += 8) {
+            ctx.fillStyle = i % 16 === 0 ? '#252540' : '#1e1e35';
+            ctx.fillRect(i, 0, 4, 32);
+        }
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.RepeatWrapping;
+        tex.repeat.set(8, 1);
+        return tex;
+    }, []);
+
+    // Leg positions (every ~20% of length, plus both ends)
+    const legPositions = useMemo(() => {
+        const positions = [];
+        const count = 6;
+        for (let i = 0; i <= count; i++) {
+            positions.push(-w / 2 + i * (w / count));
+        }
+        return positions;
+    }, [w]);
+
+    const conveyorHeight = 0.4;
+    const legHeight = conveyorHeight;
+    const controlX = -w / 2 + CONTROL_POINT * w;
+
     return (
-        <group position={[cx, 0.4, cz]}>
-            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
-                <planeGeometry args={[w, d]} />
-                <meshStandardMaterial color="#2d2d2d" roughness={0.9} />
+        <group position={[cx, conveyorHeight, cz]}>
+            {/* Belt surface (animated tapis roulant) */}
+            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, 0]}>
+                <planeGeometry args={[w, d * 0.85]} />
+                <meshStandardMaterial
+                    map={beltTexture}
+                    ref={beltRef}
+                    roughness={0.85}
+                    metalness={0.05}
+                    color="#2a2a3e"
+                />
             </mesh>
 
-            {/* Side rails */}
-            <mesh position={[0, 0.03, -d / 2 - 0.01]}>
-                <boxGeometry args={[w + 0.04, 0.08, 0.02]} />
-                <meshStandardMaterial color="#64748b" metalness={0.8} roughness={0.2} />
+            {/* Side rails (thicker, industrial steel) */}
+            <mesh position={[0, 0.04, -d / 2 - 0.015]} castShadow>
+                <boxGeometry args={[w + 0.06, 0.1, 0.03]} />
+                <meshStandardMaterial color="#4a5568" metalness={0.85} roughness={0.15} />
             </mesh>
-            <mesh position={[0, 0.03, d / 2 + 0.01]}>
-                <boxGeometry args={[w + 0.04, 0.08, 0.02]} />
-                <meshStandardMaterial color="#64748b" metalness={0.8} roughness={0.2} />
+            <mesh position={[0, 0.04, d / 2 + 0.015]} castShadow>
+                <boxGeometry args={[w + 0.06, 0.1, 0.03]} />
+                <meshStandardMaterial color="#4a5568" metalness={0.85} roughness={0.15} />
             </mesh>
 
-            {/* Rollers */}
+            {/* Rollers (more, spinning faster) */}
             {Array.from({ length: rollerCount }, (_, i) => {
                 const lx = -w / 2 + (i + 0.5) * (w / rollerCount);
                 return (
                     <mesh key={`roller-${i}`}
                         ref={el => rollersRef.current[i] = el}
-                        position={[lx, -0.01, 0]}
+                        position={[lx, -0.015, 0]}
                         rotation={[Math.PI / 2, 0, 0]}>
-                        <cylinderGeometry args={[0.015, 0.015, d * 0.9, 8]} />
-                        <meshStandardMaterial color="#94a3b8" metalness={0.6} roughness={0.3} />
+                        <cylinderGeometry args={[0.018, 0.018, d * 0.85, 8]} />
+                        <meshStandardMaterial color="#8899aa" metalness={0.7} roughness={0.2} />
                     </mesh>
                 );
             })}
 
-            {/* Legs */}
-            {[-w / 2, 0, w / 2].map((lx, i) => (
-                <mesh key={`leg-${i}`} position={[lx, -0.12, 0]}>
-                    <cylinderGeometry args={[0.025, 0.025, 0.2, 6]} />
-                    <meshStandardMaterial color="#334155" metalness={0.5} />
-                </mesh>
+            {/* ===== SUPPORT STRUCTURE ===== */}
+            {/* Legs (with base plates) */}
+            {legPositions.map((lx, i) => (
+                <React.Fragment key={`leg-struct-${i}`}>
+                    {/* Front leg */}
+                    <mesh position={[lx, -legHeight / 2, -d / 2 - 0.01]} castShadow>
+                        <boxGeometry args={[0.04, legHeight, 0.04]} />
+                        <meshStandardMaterial color="#374151" metalness={0.7} roughness={0.2} />
+                    </mesh>
+                    {/* Back leg */}
+                    <mesh position={[lx, -legHeight / 2, d / 2 + 0.01]} castShadow>
+                        <boxGeometry args={[0.04, legHeight, 0.04]} />
+                        <meshStandardMaterial color="#374151" metalness={0.7} roughness={0.2} />
+                    </mesh>
+                    {/* Cross brace between legs */}
+                    <mesh position={[lx, -legHeight / 2, 0]}>
+                        <boxGeometry args={[0.02, 0.02, d + 0.04]} />
+                        <meshStandardMaterial color="#4b5563" metalness={0.6} roughness={0.3} />
+                    </mesh>
+                    {/* Front base plate */}
+                    <mesh position={[lx, -legHeight + 0.005, -d / 2 - 0.01]} rotation={[-Math.PI / 2, 0, 0]}>
+                        <planeGeometry args={[0.1, 0.1]} />
+                        <meshStandardMaterial color="#1f2937" metalness={0.5} roughness={0.4} side={THREE.DoubleSide} />
+                    </mesh>
+                    {/* Back base plate */}
+                    <mesh position={[lx, -legHeight + 0.005, d / 2 + 0.01]} rotation={[-Math.PI / 2, 0, 0]}>
+                        <planeGeometry args={[0.1, 0.1]} />
+                        <meshStandardMaterial color="#1f2937" metalness={0.5} roughness={0.4} side={THREE.DoubleSide} />
+                    </mesh>
+                </React.Fragment>
             ))}
 
-            {/* Boxes sliding along */}
-            {(conveyorQueue || []).map((box, i) => {
-                const bx = -w / 2 + box.progress * w;
-                return (
-                    <mesh key={`box-${i}`} position={[bx, 0.08, 0]}>
-                        <boxGeometry args={[0.12, 0.1, d * 0.5]} />
-                        <meshStandardMaterial color={box.color || '#c0392b'} roughness={0.5} />
-                    </mesh>
-                );
-            })}
+            {/* Horizontal bottom frame bars (connecting legs along length) */}
+            <mesh position={[0, -legHeight + 0.05, -d / 2 - 0.01]}>
+                <boxGeometry args={[w + 0.04, 0.03, 0.025]} />
+                <meshStandardMaterial color="#4b5563" metalness={0.7} roughness={0.2} />
+            </mesh>
+            <mesh position={[0, -legHeight + 0.05, d / 2 + 0.01]}>
+                <boxGeometry args={[w + 0.04, 0.03, 0.025]} />
+                <meshStandardMaterial color="#4b5563" metalness={0.7} roughness={0.2} />
+            </mesh>
 
-            <TextSprite text={zone.name} position={[0, 0.7, 0]} scale={0.9} bgColor="rgba(230, 126, 34, 0.9)" />
+            {/* ===== CONTROL CHECKPOINT STATION ===== */}
+            {/* Yellow-black striped line on belt at control point */}
+            <mesh position={[controlX, 0.007, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                <planeGeometry args={[0.05, d * 0.85]} />
+                <meshStandardMaterial color="#f59e0b" emissive="#d97706" emissiveIntensity={0.4} />
+            </mesh>
+            {/* Small overhead gantry/arch at control point */}
+            {/* Left post */}
+            <mesh position={[controlX, 0.25, -d / 2 - 0.03]} castShadow>
+                <boxGeometry args={[0.03, 0.5, 0.03]} />
+                <meshStandardMaterial color="#065f46" metalness={0.7} roughness={0.2} />
+            </mesh>
+            {/* Right post */}
+            <mesh position={[controlX, 0.25, d / 2 + 0.03]} castShadow>
+                <boxGeometry args={[0.03, 0.5, 0.03]} />
+                <meshStandardMaterial color="#065f46" metalness={0.7} roughness={0.2} />
+            </mesh>
+            {/* Top bar */}
+            <mesh position={[controlX, 0.51, 0]}>
+                <boxGeometry args={[0.04, 0.04, d + 0.12]} />
+                <meshStandardMaterial color="#059669" metalness={0.6} roughness={0.3} />
+            </mesh>
+            {/* Control light (green indicator) */}
+            <mesh position={[controlX, 0.55, 0]}>
+                <sphereGeometry args={[0.03, 8, 6]} />
+                <meshStandardMaterial color="#10b981" emissive="#10b981" emissiveIntensity={0.8} />
+            </mesh>
+
+            {/* ===== BOXES ON CONVEYOR ===== */}
+            {(conveyorQueue || []).map((box, i) => (
+                <ConveyorBox key={`cbox-${box.orderId || i}`} box={box} w={w} d={d} />
+            ))}
+
+            {/* End stops (bumpers at both ends) */}
+            <mesh position={[-w / 2 - 0.02, 0.025, 0]}>
+                <boxGeometry args={[0.04, 0.07, d + 0.04]} />
+                <meshStandardMaterial color="#ef4444" roughness={0.5} />
+            </mesh>
+            <mesh position={[w / 2 + 0.02, 0.025, 0]}>
+                <boxGeometry args={[0.04, 0.07, d + 0.04]} />
+                <meshStandardMaterial color="#22c55e" roughness={0.5} />
+            </mesh>
+
+            {/* Labels */}
+            <TextSprite text="CONTRÔLE" position={[controlX, 0.75, 0]} scale={0.6} bgColor="rgba(5, 150, 105, 0.9)" />
+            <TextSprite text={zone.name} position={[0, 0.9, 0]} scale={0.9} bgColor="rgba(230, 126, 34, 0.9)" />
+            <TextSprite text="EXPÉDITION →" position={[w / 2 - 0.3, 0.65, 0]} scale={0.5} bgColor="rgba(239, 68, 68, 0.9)" />
         </group>
     );
 });

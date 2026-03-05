@@ -92,7 +92,9 @@ export class Engine {
                 if (pickZones.length > 0) {
                     const targetZone = pickZones[Math.floor(Math.random() * pickZones.length)];
                     const quantity = Math.floor(Math.random() * 71) + 30;
-                    const orderId = `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+                    // Generate a truly unique ID to prevent React key rendering conflicts
+                    const uniqueSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+                    const orderId = `ORD-${Math.floor(this.simulationTime * 100)}-${uniqueSuffix}`;
                     const newOrder = {
                         id: orderId,
                         zoneId: targetZone.id,
@@ -110,16 +112,43 @@ export class Engine {
             }
         }
 
-        // --- CONVEYOR BELT ANIMATION ---
+        // --- CONVEYOR BELT ANIMATION (Two-phase: 0→0.45 control point, 0.45→1.0 expedition) ---
         const conveyor = this.config.zones.find(z => z.id === 'conveyor');
+        const CONTROL_POINT = 0.45;
         if (conveyor) {
-            const conveyorSpeed = 40;
+            // Speed 0.5 means progress increases by 0.5 per second (at 1x speed).
+            // It takes 2 real seconds to cross the conveyor, making it a very visibly smooth animation.
+            const conveyorSpeed = 0.5;
+            const toRemove = [];
             this.conveyorQueue.forEach(box => {
-                box.progress += conveyorSpeed * dt;
-                if (box.progress >= 1) box.progress = 1;
-                // Track waiting time
                 if (!box.startTime) box.startTime = this.simulationTime;
+                if (!box.controlled) {
+                    // Phase 1: slide to control checkpoint
+                    box.progress += conveyorSpeed * dt;
+                    if (box.progress >= CONTROL_POINT) box.progress = CONTROL_POINT;
+                } else {
+                    // Phase 2: after control, slide to expedition end
+                    box.progress += conveyorSpeed * dt;
+                    if (box.progress >= 1) {
+                        box.progress = 1;
+                        // Auto-complete: mark order as completed
+                        const order = this.tasks.find(t => t.id === box.orderId);
+                        if (order && order.status !== 'completed') {
+                            order.status = 'completed';
+                            this.completedOrderIds.push(order.id);
+                            this.completedCount++;
+                            if (this.orderTimestamps[order.id]) {
+                                this.orderTimestamps[order.id].completed = this.simulationTime;
+                            }
+                        }
+                        toRemove.push(box);
+                    }
+                }
             });
+            // Remove completed boxes
+            if (toRemove.length > 0) {
+                this.conveyorQueue = this.conveyorQueue.filter(b => !toRemove.includes(b));
+            }
         }
 
         // --- AGENT UPDATES ---
@@ -450,16 +479,19 @@ export class Engine {
                     this.setAgentTarget(agent, randomPz.id, 'patrolling');
                 }
 
-                // ========== CONTROLLER ==========
+                // ========== CONTROLLER (Stationary at conveyor control point) ==========
             } else if (agent.type === 'Controller') {
-                const readyBox = this.conveyorQueue.find(b => b.progress >= 1 && !b.controlled);
+                // Controller stays at the conveyor — check for boxes at control checkpoint
+                const readyBox = this.conveyorQueue.find(b => b.progress >= 0.45 && !b.controlled);
                 if (readyBox) {
                     agent.controlBox = readyBox;
-                    this.setAgentTarget(agent, 'conveyor', 'moving_to_conveyor');
-                } else {
-                    const pilulier = this.config.zones.find(z => z.id === 'pilulier');
-                    if (pilulier && Math.random() < 0.005) {
-                        this.setAgentTarget(agent, 'pilulier', 'patrolling');
+                    agent.state = 'controlling';
+                    // Pause for 1.2 seconds at the checkpoint so it visually stops
+                    agent.controlTimer = 1.2;
+                    agent.controlTotal = 1.2;
+                    // Track control wait time
+                    if (readyBox.startTime) {
+                        this.completedControlWaits.push(this.simulationTime - readyBox.startTime);
                     }
                 }
             }
@@ -489,8 +521,8 @@ export class Engine {
                         agent.pickingTotal = null;
                         agent.carrying = order.quantity;
 
-                        // Go to conveyor to drop off the box
-                        this.setAgentTarget(agent, 'conveyor', 'delivering_to_conveyor');
+                        // Go to conveyor START (right end) to drop off the box
+                        this.setAgentTarget(agent, 'conveyor_start', 'delivering_to_conveyor');
                     }
                 } else {
                     agent.state = 'idle';
@@ -502,7 +534,8 @@ export class Engine {
                 if (order) {
                     this.conveyorQueue.push({
                         orderId: order.id,
-                        progress: 0,
+                        // Start at -0.05 to trigger the "drop" vertical animation before sliding
+                        progress: -0.05,
                         controlled: false,
                         startTime: this.simulationTime,
                         color: '#' + Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, '0')
@@ -520,49 +553,27 @@ export class Engine {
                 agent.carrying = 0;
                 agent.state = 'idle';
 
-                // --- CONTROLLER: MOVING TO CONVEYOR ---
-            } else if (agent.state === 'moving_to_conveyor') {
-                if (agent.controlBox) {
-                    agent.controlBox.controlled = true;
-                    agent.state = 'controlling';
-                    agent.controlTimer = controlTimerBase;
-                    // Track control wait time
-                    if (agent.controlBox.startTime) {
-                        this.completedControlWaits.push(this.simulationTime - agent.controlBox.startTime);
-                    }
-                } else {
-                    agent.state = 'idle';
-                }
-
-                // --- CONTROLLER: CONTROLLING ---
+                // --- CONTROLLER: CONTROLLING (stationary at conveyor) ---
             } else if (agent.state === 'controlling') {
-                if (!agent.controlTimer) agent.controlTimer = controlTimerBase;
+                if (!agent.controlTimer) {
+                    agent.controlTimer = 1.2;
+                    agent.controlTotal = 1.2;
+                }
                 agent.controlTimer -= dt;
                 if (agent.controlTimer <= 0) {
                     agent.controlTimer = null;
-                    this.conveyorQueue = this.conveyorQueue.filter(b => b !== agent.controlBox);
-                    const order = this.tasks.find(t => t.id === agent.controlBox?.orderId);
-                    if (order) {
-                        order.status = 'controlled';
-                        agent.currentOrder = order;
+                    // Mark box as controlled — it will resume sliding automatically
+                    if (agent.controlBox) {
+                        agent.controlBox.controlled = true;
+                        agent.controlBox.controlledTime = this.simulationTime;
+                        const order = this.tasks.find(t => t.id === agent.controlBox.orderId);
+                        if (order) {
+                            order.status = 'controlled';
+                        }
                     }
                     agent.controlBox = null;
-                    this.setAgentTarget(agent, 'shipping', 'delivering_to_expedition');
+                    agent.state = 'idle';
                 }
-
-                // --- CONTROLLER: DELIVERING TO EXPEDITION ---
-            } else if (agent.state === 'delivering_to_expedition') {
-                if (agent.currentOrder) {
-                    agent.currentOrder.status = 'completed';
-                    this.completedOrderIds.push(agent.currentOrder.id);
-                    this.completedCount++;
-                    // Track completion
-                    if (this.orderTimestamps[agent.currentOrder.id]) {
-                        this.orderTimestamps[agent.currentOrder.id].completed = this.simulationTime;
-                    }
-                    agent.currentOrder = null;
-                }
-                agent.state = 'idle';
 
                 // --- STOREKEEPER: DEPOSITING IN RESERVE ---
             } else if (agent.state === 'depositing_reserve') {
@@ -642,11 +653,26 @@ export class Engine {
 
     setAgentTarget(agent, targetZoneId, newState) {
         if (!this.config.nodes) return;
-        const zone = this.config.zones.find(z => z.id === targetZoneId);
-        if (!zone) return;
-        agent.targetId = targetZoneId;
+
+        // Special case: conveyor_start navigates to right end of conveyor
+        let targetX, targetY;
+        if (targetZoneId === 'conveyor_start') {
+            const conveyor = this.config.zones.find(z => z.id === 'conveyor');
+            if (!conveyor) return;
+            agent.targetId = 'conveyor';
+            // Right end of conveyor (where picker drops boxes)
+            targetX = conveyor.x + conveyor.width;
+            targetY = conveyor.y + conveyor.height / 2;
+        } else {
+            const zone = this.config.zones.find(z => z.id === targetZoneId);
+            if (!zone) return;
+            agent.targetId = targetZoneId;
+            targetX = zone.x + zone.width / 2;
+            targetY = zone.y + zone.height / 2;
+        }
+
         const startNode = this.findNearestNode(agent.x, agent.y);
-        const endNode = this.findNearestNode(zone.x + zone.width / 2, zone.y + zone.height / 2);
+        const endNode = this.findNearestNode(targetX, targetY);
         if (startNode && endNode) {
             const path = this.findPath(startNode, endNode);
             if (path) {
@@ -757,20 +783,26 @@ export class Engine {
 
                 if (dot < -0.3) {
                     // Head-on: BOTH agents dodge to their own right
-                    dodgeX += (-hdy) * speed * pushStrength * 0.6;
-                    dodgeY += (hdx) * speed * pushStrength * 0.6;
-                    speedMultiplier = Math.min(speedMultiplier, 0.5 + sepDist / COLLISION_DIST * 0.5);
+                    // To break symmetry lock, one dodges slightly harder than the other
+                    const dodgeStrength = agent.id > other.id ? 0.8 : 0.4;
+                    dodgeX += (-hdy) * speed * pushStrength * dodgeStrength;
+                    dodgeY += (hdx) * speed * pushStrength * dodgeStrength;
+
+                    // The one dodging less keeps more forward momentum to push past
+                    const forwardSpeed = agent.id > other.id ? 0.3 : 0.7;
+                    speedMultiplier = Math.min(speedMultiplier, forwardSpeed + (sepDist / COLLISION_DIST) * 0.3);
                 } else {
                     // Same direction or crossing: if other is ahead, slow down
                     const aheadDot = sepX * hdx + sepY * hdy;
                     if (aheadDot > 0) {
                         speedMultiplier = Math.min(speedMultiplier, 0.15 + (sepDist / COLLISION_DIST) * 0.85);
                     }
-                    // General repulsion to avoid overlap
-                    if (sepDist < 20) {
-                        const repel = (20 - sepDist) / 20;
-                        dodgeX -= (sepX / sepDist) * speed * repel * 0.3;
-                        dodgeY -= (sepY / sepDist) * speed * repel * 0.3;
+                    // General repulsion to avoid overlap (made asymmetrical to prevent perfect orbits)
+                    if (sepDist < 25) {
+                        const repel = (25 - sepDist) / 25;
+                        const repelPower = agent.id > other.id ? 0.4 : 0.1;
+                        dodgeX -= (sepX / sepDist) * speed * repel * repelPower;
+                        dodgeY -= (sepY / sepDist) * speed * repel * repelPower;
                     }
                 }
             }
