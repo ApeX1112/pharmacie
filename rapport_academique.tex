@@ -52,7 +52,8 @@
 \centering
 \vspace*{1cm}
 
-{\Large \textbf{Universit\'e / \'Ecole}}\\[0.3cm]
+\includegraphics[width=6cm]{src/screenshots/c_centralelille_rvb_300sm.png}\\[1cm]
+{\Large \textbf{\'Ecole Centrale de Lille}}\\[0.3cm]
 {\large D\'epartement d'Informatique et de G\'enie Logiciel}\\[1.5cm]
 
 \rule{\textwidth}{1.5pt}\\[0.5cm]
@@ -65,7 +66,9 @@
 {\large Application Web Interactive de Simulation Logistique 3D}\\[2cm]
 
 \begin{tabular}{ll}
-\textbf{Fili\`ere :} & Informatique \\
+\textbf{R\'ealis\'e par :} & Mohamed Moustache, Imad Nahya \\
+& Bilal Himit, Aude Pinson \\[0.1cm]
+\textbf{Encadrant :} & Slim Hammadi \\[0.3cm]
 \textbf{Ann\'ee universitaire :} & 2025 -- 2026 \\
 \end{tabular}
 
@@ -108,6 +111,13 @@ Le pr\'esent projet vise \`a concevoir et r\'ealiser un jumeau num\'erique compl
     \item Offrir une fonctionnalit\'e de \textbf{sc\'enarios hypoth\'etiques} (\textrm{What-If}) permettant de tester l'impact de diff\'erentes configurations sur les performances globales.
     \item Concevoir une \textbf{interface utilisateur} ergonomique et enti\`erement ex\'ecutable dans un navigateur web, sans installation de logiciel sp\'ecialis\'e.
 \end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{src/screenshots/screenshot_01.png}
+    \caption{Aper\c{c}u global de l'entrep\^ot 3D simul\'e en temps r\'eel}
+    \label{fig:overview}
+\end{figure}
 
 \section{Organisation du rapport}
 
@@ -196,6 +206,21 @@ Le fichier de configuration de l'entrep\^ot, au format JSON, est stock\'e dans l
 
 Le flux de donn\'ees dans l'application suit un cycle unidirectionnel rigoureux. La configuration JSON alimente le moteur de simulation. \`A chaque image d'animation, le hook de synchronisation charge l'\'etat actuel des agents depuis le magasin Zustand, transmet ces donn\'ees au moteur, r\'ecup\`ere les r\'esultats du calcul (positions mises \`a jour, m\'etriques, alertes, commandes), et synchronise ces r\'esultats vers le magasin. Les composants React, abonn\'es aux tranches sp\'ecifiques du magasin, se mettent \`a jour automatiquement lorsque les donn\'ees qu'ils observent changent. Cette architecture \'elimine les probl\`emes de synchronisation et garantit une coh\'erence parfaite entre la simulation et l'affichage.
 
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\textwidth]{src/screenshots/screenshot_11.png}
+    \caption{Interface de suivi en temps r\'eel des commandes et de leur distribution}
+    \label{fig:orders_panel}
+\end{figure}
+
+L'application d\'eploie \'egalement une interface permettant d'effectuer des tests "What-If" en manipulant les param\`etres \`a la vol\'ee :
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{src/screenshots/screenshot_10.png}
+    \caption{Panneau des Sc\'enarios "What-If" avec comparaison de Baseline}
+    \label{fig:scenarios_panel}
+\end{figure}
+
 
 % ===================== MODELISATION DE L'ENTREPOT =====================
 \chapter{Mod\'elisation de l'Entrep\^ot}
@@ -271,6 +296,13 @@ G_i(h) = \exp\left( -\frac{1}{2} \left( \frac{h - \text{peak}_i}{\sigma_i} \righ
 
 Les param\`etres de cette distribution sont configurables ind\'ependamment pour chaque zone de r\'eception : position temporelle de chaque pic, \'ecart-type contr\^olant la largeur du pic, poids relatif de chaque composante, et d\'ebit maximal en unit\'es par heure. Un m\'ecanisme d'accumulateur fractionnaire convertit le taux continu en \'ev\'enements discrets, assurant une g\'en\'eration r\'ealiste des arriv\'ees. Les marchandises g\'en\'er\'ees sont ajout\'ees \`a une file d'attente de r\'eception que les magasiniers consomment progressivement.
 
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{src/screenshots/screenshot_05.png}
+    \caption{Interface de configuration des arriv\'ees bimodales}
+    \label{fig:bimodal_config}
+\end{figure}
+
 \section{G\'en\'eration des commandes sortantes}
 
 Les commandes sortantes suivent \'egalement une distribution bimodale, avec un premier pic vers 10 heures et un second vers 15 heures. Lorsqu'une commande est d\'eclench\'ee, le syst\`eme v\'erifie d'abord qu'un plafond de 5 commandes simultan\'ees en attente n'est pas atteint, s\'electionne al\'eatoirement une zone de picking cible, et d\'etermine une quantit\'e comprise entre 30 et 100 unit\'es.
@@ -315,6 +347,13 @@ Les magasiniers et les pr\'eparateurs suivent des horaires de travail configurab
 
 \`A la fin de son quart, un agent ne dispara\^it pas imm\'ediatement : il termine d'abord sa t\^ache en cours, puis se dirige vers la sortie de l'entrep\^ot avant de passer en mode inactif. Il r\'eappara\^it automatiquement au d\'ebut de son prochain bloc de travail. Le contr\^oleur, quant \`a lui, assure une couverture continue 24 heures sur 24.
 
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=10cm]{src/screenshots/screenshot_06.png}
+    \caption{Panneau de configuration des plannings et quarts de travail}
+    \label{fig:shifts_config}
+\end{figure}
+
 
 % ===================== MODELISATION 3D =====================
 \chapter{Mod\'elisation 3D et Rendu Visuel}
@@ -339,9 +378,30 @@ Les agents sont repr\'esent\'es par des personnages humano\"ides anim\'es de man
 
 L'entrep\^ot est compl\'et\'e par des \'el\'ements architecturaux renfor\c{c}ant l'immersion : murs semi-transparents d\'elimitant l'espace, colonnes structurelles en acier, conduits de ventilation au plafond, et fermes triangulaires (trusses) soutenant la toiture. Chaque \'el\'ement utilise des mat\'eriaux PBR distincts avec des propri\'et\'es de m\'etallit\'e, de rugosit\'e et de transparence soigneusement calibr\'ees.
 
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{src/screenshots/screenshot_02.png}
+    \caption{Vue de dessus (\textit{Top-Down}) de la disposition de l'entrep\^ot}
+    \label{fig:top_down}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{src/screenshots/screenshot_03.png}
+    \caption{Vue d\'etaill\'ee des agents r\'ealisant des op\'erations de picking}
+    \label{fig:zoomed_picking}
+\end{figure}
+
 \section{Convoyeur et colis}
 
 Le convoyeur est rendu avec des rouleaux cylindriques en rotation continue et un mat\'eriau m\'etallique r\'ealiste. Les colis d\'epos\'es par les pr\'eparateurs sont repr\'esent\'es par des bo\^ites color\'ees al\'eatoirement, positionn\'ees par interpolation lin\'eaire le long du tapis selon leur attribut de progression. Un colis au d\'ebut du tapis a une progression de 0, tandis qu'un colis arriv\'e en bout de cha\^ine a une progression de 1, pr\^et pour le contr\^ole qualit\'e.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{src/screenshots/screenshot_04.png}
+    \caption{Vue d\'etaill\'ee du convoyeur central de contr\^ole qualit\'e}
+    \label{fig:conveyor_zoomed}
+\end{figure}
 
 \section{Optimisations de rendu}
 
@@ -382,11 +442,27 @@ D\'ebit horaire & Nombre de commandes termin\'ees divis\'e par le nombre d'heure
 
 Les m\'etriques temporelles sont calcul\'ees sur une fen\^etre glissante des vingt derni\`eres commandes, \'evitant que les donn\'ees initiales ne faussent les indicateurs courants. Cette approche fournit une vision repr\'esentative des performances actuelles de l'entrep\^ot.
 
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=10cm]{src/screenshots/screenshot_07.png}
+    \hspace{1cm}
+    \includegraphics[height=10cm]{src/screenshots/screenshot_08.png}
+    \caption{Tableau de bord : indicateurs cl\'es de performance (KPIs)}
+    \label{fig:dashboard_kpis}
+\end{figure}
+
 \section{Syst\`eme d'alertes}
 
 Le moteur de simulation int\`egre un syst\`eme de d\'etection automatique des anomalies qui identifie cinq types de situations critiques : rupture de stock compl\`ete (s\'ev\'erit\'e critique), stock critique sous la moiti\'e du seuil (avertissement), saturation du convoyeur avec plus de cinq colis en file (avertissement), surcharge des pr\'eparateurs lorsque tous sont occup\'es avec plus de trois commandes en attente (critique), et saturation du contr\^ole avec plus de trois colis en attente d'inspection (avertissement).
 
 Chaque alerte est caract\'eris\'ee par un identifiant unique, un type, un niveau de s\'ev\'erit\'e, un message descriptif et la r\'ef\'erence de la zone concern\'ee. Les alertes sont synchronis\'ees vers le magasin d'\'etat centralis\'e et affich\'ees dans un panneau d\'edi\'e de l'interface, avec un codage couleur distinguant les avertissements des situations critiques.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.45\textwidth]{src/screenshots/screenshot_09.png}
+    \caption{Panneau des alertes notifiant les ruptures de stock critiques}
+    \label{fig:alerts_panel}
+\end{figure}
 
 \section{Syst\`eme de sc\'enarios hypoth\'etiques}
 

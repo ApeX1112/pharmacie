@@ -1,12 +1,26 @@
 # Rapport Technique : Jumeau Numérique d'Entrepôt (Digital Twin Warehouse)
 
+<div align="center">
+    <img src="./src/screenshots/c_centralelille_rvb_300sm.png" alt="Logo Centrale Lille" width="300"/>
+</div>
+
+**Réalisé par :**
+- Mohamed Moustache
+- Imad Nahya
+- Bilal Himit
+- Aude Pinson
+
+**Encadrant :** Slim Hammadi
+
+---
+
 ## 1. Introduction et Contexte du Projet
 
 Le projet **Digital Twin Warehouse** (Jumeau Numérique d'Entrepôt) est une application web interactive qui simule en temps réel les opérations logistiques complexes d'un entrepôt pharmaceutique. L'objectif principal de ce projet est de fournir une visualisation 3D hautement réaliste, similaire à des logiciels professionnels comme FlexSim, tout en offrant des fonctionnalités de gestion et de surveillance via un tableau de bord (Dashboard). 
 
 La combinaison d'une interface utilisateur moderne et d'un moteur de rendu 3D optimisé permet aux utilisateurs d'observer le flux de préparation des commandes, le réapprovisionnement dynamique des stocks, et le contrôle qualité des colis sur le convoyeur. Le système a été conçu pour être à la fois visuellement immersif et techniquement robuste, garantissant une fluidité de fonctionnement directement dans le navigateur.
 
-![Aperçu Global de l'Entrepôt](./public/screenshots/warehouse_overview_1772482387495.png)
+![Vue d'ensemble de l'entrepôt 3D](./src/screenshots/Capture d'écran 2026-03-05 213104.png)
 
 ---
 
@@ -167,6 +181,10 @@ G_i(h) = exp(-0.5 × ((h - peak_i) / σ_i)²)
 ```
 
 ### 5.2. Paramètres Configurables par Zone
+
+L'interface de configuration permet d'ajuster dynamiquement les courbes pour chaque zone :
+
+![Fenêtre de Configuration des Arrivées Bimodales](./src/screenshots/Capture d'écran 2026-03-05 213312.png)
 
 Chaque zone d'arrivée (A, B, C, D) possède ses propres paramètres :
 
@@ -400,6 +418,9 @@ Chaque agent dispose de **deux blocs de travail** configurables (ex: Matin + Apr
 
 **Interface de Contrôle Avancée (UI)** :
 Les horaires de rotation peuvent être modifiés en temps réel via le bouton **"Shifts" (icône Horloge)** dans la barre latérale. La modale interactive propose :
+
+![Interface des Plannings et Quarts de Travail](./src/screenshots/Capture d'écran 2026-03-05 213339.png)
+
 - 4 curseurs (sliders) par agent permettant de régler le début et la fin de chaque bloc.
 - Une **Timeline sur 24h** visuelle interactive qui affiche les périodes travaillées (couleurs) et les temps de pause/repos (gris).
 - Une détection automatique du franchissement de minuit (si Fin < Début), activant nativement le travail de nuit.
@@ -573,9 +594,24 @@ Les agents sont animés **procéduralement** (sans squelette importé) :
 
 L'entrepôt est encadré par des murs semi-transparents, des colonnes structurelles en acier, des conduits de ventilation, et un plafond avec des fermes triangulaires (trusses) — tous rendus avec des matériaux PBR distincts.
 
+**Vues supplémentaires de l'entrepôt :**
+
+![Vue de dessus (Top-Down) de l'entrepôt](./src/screenshots/Capture d'écran 2026-03-05 213133.png)
+
+![Vue détaillée zoomée des rayonnages et agents au picking (1)](./src/screenshots/Capture d'écran 2026-03-05 213222.png)
+
+![Vue détaillée zoomée des rayonnages et convoyeur (2)](./src/screenshots/Capture d'écran 2026-03-05 213246.png)
+
 ---
 
 ## 12. Métriques Avancées (KPIs)
+
+Le tableau de bord centralise l'ensemble des métriques de performance :
+
+<div align="center">
+    <img src="./src/screenshots/Capture d'écran 2026-03-05 213459.png" alt="Tableau de bord - KPIs (1)" width="350"/>
+    <img src="./src/screenshots/Capture d'écran 2026-03-05 213511.png" alt="Tableau de bord - KPIs (2)" width="350"/>
+</div>
 
 ### 12.1. Calcul en Temps Réel
 
@@ -600,6 +636,10 @@ Les temps de préparation et de contrôle sont calculés sur une **fenêtre glis
 ## 13. Système d'Alertes
 
 ### 13.1. Types d'Alertes
+
+Le module d'alertes informe en temps réel des conditions critiques de l'entrepôt :
+
+![Panneau des Alertes](./src/screenshots/Capture d'écran 2026-03-05 213536.png)
 
 La méthode `detectAlerts()` identifie 4 types de situation critique :
 

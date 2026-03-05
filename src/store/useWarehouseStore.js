@@ -143,6 +143,10 @@ const useWarehouseStore = create((set, get) => ({
     updateTimeInfo: (info) => set({ timeInfo: info }),
     tick: () => set((state) => ({ currentTime: state.currentTime + 1 })),
 
+    // Live Baseline Metrics from Ghost Engine
+    baselineMetrics: null,
+    updateBaselineMetrics: (metrics) => set({ baselineMetrics: metrics }),
+
     // Scenario management
     saveBaseline: () => set((state) => ({
         baselineSnapshot: {
@@ -153,7 +157,7 @@ const useWarehouseStore = create((set, get) => ({
         }
     })),
     resetToBaseline: () => set((state) => {
-        if (!state.baselineSnapshot) return {};
+        if (!state.baselineSnapshot) return { scenarioActive: null };
         return {
             parameters: JSON.parse(JSON.stringify(state.baselineSnapshot.parameters)),
             agents: [...state.initialAgents.map(a => ({ ...a }))],

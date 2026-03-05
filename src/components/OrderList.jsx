@@ -37,7 +37,6 @@ const OrderList = () => {
                             <th className="px-4 py-2 border-b">Zone</th>
                             <th className="px-4 py-2 border-b">Quantité</th>
                             <th className="px-4 py-2 border-b">Status</th>
-                            <th className="px-4 py-2 border-b">Heure</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -69,9 +68,6 @@ const OrderList = () => {
                                             <Clock className="w-3 h-3" /> En attente
                                         </span>
                                     )}
-                                </td>
-                                <td className="px-4 py-2 text-gray-400 text-xs">
-                                    J{order.creationDay} - {order.creationTime}
                                 </td>
                             </tr>
                         ))}

@@ -18,13 +18,6 @@ const scenarios = [
         color: 'orange'
     },
     {
-        id: 'fridge_surge',
-        name: 'Surge Frigo',
-        description: 'Doubler les commandes réfrigérées',
-        icon: Snowflake,
-        color: 'cyan'
-    },
-    {
         id: 'frequent_rupture',
         name: 'Rupture Fréquente',
         description: 'Stock picking réduit sous le seuil',
@@ -51,6 +44,7 @@ const colorMap = {
 const ScenariosPanel = ({ isOpen, onClose }) => {
     const scenarioActive = useWarehouseStore(state => state.scenarioActive);
     const baselineSnapshot = useWarehouseStore(state => state.baselineSnapshot);
+    const baselineMetrics = useWarehouseStore(state => state.baselineMetrics);
     const metrics = useWarehouseStore(state => state.metrics);
     const saveBaseline = useWarehouseStore(state => state.saveBaseline);
     const resetToBaseline = useWarehouseStore(state => state.resetToBaseline);
@@ -111,28 +105,65 @@ const ScenariosPanel = ({ isOpen, onClose }) => {
 
                     {/* Baseline vs Current Comparison */}
                     {baselineSnapshot && (
-                        <div className="mb-4 bg-gray-50 border border-gray-200 rounded-lg p-3">
-                            <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Comparaison Baseline vs Actuel</h4>
-                            <div className="grid grid-cols-4 gap-3 text-center text-xs">
-                                <div>
-                                    <p className="text-gray-400">Commandes</p>
-                                    <p className="text-gray-500">{baselineSnapshot.metrics.completedOrders}</p>
-                                    <p className="font-bold text-gray-800">→ {metrics.completedOrders}</p>
+                        <div className="mb-4 bg-gray-50 border border-indigo-200 rounded-lg p-4 shadow-sm">
+                            <div className="flex items-center gap-2 mb-3">
+                                <h4 className="text-sm font-bold text-indigo-800 uppercase">Comparaison : Réf. vs Actuel</h4>
+                                <span className="text-xs text-gray-500 bg-white px-2 py-0.5 rounded border border-gray-200">
+                                    Scénario en cours
+                                </span>
+                            </div>
+
+                            <div className="grid grid-cols-4 gap-4 text-center">
+                                {/* Commandes */}
+                                <div className="bg-white p-2 rounded border border-gray-100 shadow-sm flex flex-col items-center">
+                                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Commandes</p>
+                                    <div className="flex items-baseline gap-2">
+                                        <p className="text-gray-400 line-through text-xs">{baselineMetrics?.completedOrders || 0}</p>
+                                        <p className={`font-bold text-sm ${(metrics.completedOrders || 0) > (baselineMetrics?.completedOrders || 0) ? 'text-emerald-600' :
+                                            (metrics.completedOrders || 0) < (baselineMetrics?.completedOrders || 0) ? 'text-red-500' : 'text-gray-700'
+                                            }`}>
+                                            {metrics.completedOrders || 0}
+                                        </p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <p className="text-gray-400">Débit</p>
-                                    <p className="text-gray-500">{(baselineSnapshot.metrics.throughput || 0).toFixed(2)}</p>
-                                    <p className="font-bold text-gray-800">→ {(metrics.throughput || 0).toFixed(2)}</p>
+
+                                {/* Débit */}
+                                <div className="bg-white p-2 rounded border border-gray-100 shadow-sm flex flex-col items-center">
+                                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Débit (cmd/h)</p>
+                                    <div className="flex items-baseline gap-2">
+                                        <p className="text-gray-400 line-through text-xs">{(baselineMetrics?.throughput || 0).toFixed(2)}</p>
+                                        <p className={`font-bold text-sm ${(metrics.throughput || 0) > (baselineMetrics?.throughput || 0) ? 'text-emerald-600' :
+                                            (metrics.throughput || 0) < (baselineMetrics?.throughput || 0) ? 'text-red-500' : 'text-gray-700'
+                                            }`}>
+                                            {(metrics.throughput || 0).toFixed(2)}
+                                        </p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <p className="text-gray-400">Util. Prépa.</p>
-                                    <p className="text-gray-500">{(baselineSnapshot.metrics.pickerUtilization || 0).toFixed(0)}%</p>
-                                    <p className="font-bold text-gray-800">→ {(metrics.pickerUtilization || 0).toFixed(0)}%</p>
+
+                                {/* Utilisation Préparateurs */}
+                                <div className="bg-white p-2 rounded border border-gray-100 shadow-sm flex flex-col items-center">
+                                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Util. Prépa.</p>
+                                    <div className="flex items-baseline gap-2">
+                                        <p className="text-gray-400 line-through text-xs">{(baselineMetrics?.pickerUtilization || 0).toFixed(0)}%</p>
+                                        <p className={`font-bold text-sm ${(metrics.pickerUtilization || 0) < (baselineMetrics?.pickerUtilization || 0) ? 'text-emerald-600' :
+                                            (metrics.pickerUtilization || 0) > (baselineMetrics?.pickerUtilization || 0) ? 'text-red-500' : 'text-gray-700'
+                                            }`}>
+                                            {(metrics.pickerUtilization || 0).toFixed(0)}%
+                                        </p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <p className="text-gray-400">Ruptures</p>
-                                    <p className="text-gray-500">{(baselineSnapshot.metrics.pickingRuptureRate || 0).toFixed(0)}%</p>
-                                    <p className="font-bold text-gray-800">→ {(metrics.pickingRuptureRate || 0).toFixed(0)}%</p>
+
+                                {/* Ruptures Picking */}
+                                <div className="bg-white p-2 rounded border border-gray-100 shadow-sm flex flex-col items-center">
+                                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Taux Ruptures</p>
+                                    <div className="flex items-baseline gap-2">
+                                        <p className="text-gray-400 line-through text-xs">{(baselineMetrics?.pickingRuptureRate || 0).toFixed(0)}%</p>
+                                        <p className={`font-bold text-sm ${(metrics.pickingRuptureRate || 0) < (baselineMetrics?.pickingRuptureRate || 0) ? 'text-emerald-600' :
+                                            (metrics.pickingRuptureRate || 0) > (baselineMetrics?.pickingRuptureRate || 0) ? 'text-red-500' : 'text-gray-700'
+                                            }`}>
+                                            {(metrics.pickingRuptureRate || 0).toFixed(0)}%
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>

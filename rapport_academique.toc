@@ -21,29 +21,29 @@
 \contentsline {section}{\numberline {5.1}Architecture du moteur}{14}{section.5.1}%
 \contentsline {section}{\numberline {5.2}Distribution bimodale des arriv\'ees}{14}{section.5.2}%
 \contentsline {section}{\numberline {5.3}G\'en\'eration des commandes sortantes}{15}{section.5.3}%
-\contentsline {section}{\numberline {5.4}Agents et machines \`a \'etats finis}{15}{section.5.4}%
-\contentsline {subsection}{\numberline {5.4.1}Magasiniers (Storekeepers)}{15}{subsection.5.4.1}%
+\contentsline {section}{\numberline {5.4}Agents et machines \`a \'etats finis}{16}{section.5.4}%
+\contentsline {subsection}{\numberline {5.4.1}Magasiniers (Storekeepers)}{16}{subsection.5.4.1}%
 \contentsline {subsection}{\numberline {5.4.2}Pr\'eparateurs (Pickers)}{16}{subsection.5.4.2}%
 \contentsline {subsection}{\numberline {5.4.3}Contr\^oleur (Controller)}{16}{subsection.5.4.3}%
-\contentsline {section}{\numberline {5.5}Algorithme de pathfinding A*}{16}{section.5.5}%
-\contentsline {section}{\numberline {5.6}Syst\`eme d'\'evitement de collisions}{16}{section.5.6}%
+\contentsline {section}{\numberline {5.5}Algorithme de pathfinding A*}{17}{section.5.5}%
+\contentsline {section}{\numberline {5.6}Syst\`eme d'\'evitement de collisions}{17}{section.5.6}%
 \contentsline {section}{\numberline {5.7}Gestion des quarts de travail}{17}{section.5.7}%
-\contentsline {chapter}{\numberline {6}Mod\'elisation 3D et Rendu Visuel}{18}{chapter.6}%
-\contentsline {section}{\numberline {6.1}Environnement et mat\'eriaux physiques}{18}{section.6.1}%
-\contentsline {section}{\numberline {6.2}Conversion des coordonn\'ees 2D vers 3D}{18}{section.6.2}%
-\contentsline {section}{\numberline {6.3}Rayonnages et stockage}{18}{section.6.3}%
-\contentsline {section}{\numberline {6.4}Animations humano\"ides proc\'edurales}{19}{section.6.4}%
-\contentsline {section}{\numberline {6.5}\'El\'ements architecturaux}{19}{section.6.5}%
-\contentsline {section}{\numberline {6.6}Convoyeur et colis}{19}{section.6.6}%
-\contentsline {section}{\numberline {6.7}Optimisations de rendu}{19}{section.6.7}%
-\contentsline {chapter}{\numberline {7}Tableau de Bord et Syst\`emes d'Analyse}{20}{chapter.7}%
-\contentsline {section}{\numberline {7.1}Indicateurs cl\'es de performance}{20}{section.7.1}%
-\contentsline {section}{\numberline {7.2}Syst\`eme d'alertes}{21}{section.7.2}%
-\contentsline {section}{\numberline {7.3}Syst\`eme de sc\'enarios hypoth\'etiques}{21}{section.7.3}%
-\contentsline {section}{\numberline {7.4}Horloge de simulation et temporalit\'e}{21}{section.7.4}%
-\contentsline {section}{\numberline {7.5}Interface de contr\^ole}{22}{section.7.5}%
-\contentsline {chapter}{\numberline {8}Conclusion et Perspectives}{23}{chapter.8}%
-\contentsline {section}{\numberline {8.1}Synth\`ese des r\'ealisations}{23}{section.8.1}%
-\contentsline {section}{\numberline {8.2}Apports du projet}{23}{section.8.2}%
-\contentsline {section}{\numberline {8.3}Limites identifi\'ees}{24}{section.8.3}%
-\contentsline {section}{\numberline {8.4}Perspectives d'\'evolution}{24}{section.8.4}%
+\contentsline {chapter}{\numberline {6}Mod\'elisation 3D et Rendu Visuel}{19}{chapter.6}%
+\contentsline {section}{\numberline {6.1}Environnement et mat\'eriaux physiques}{19}{section.6.1}%
+\contentsline {section}{\numberline {6.2}Conversion des coordonn\'ees 2D vers 3D}{19}{section.6.2}%
+\contentsline {section}{\numberline {6.3}Rayonnages et stockage}{19}{section.6.3}%
+\contentsline {section}{\numberline {6.4}Animations humano\"ides proc\'edurales}{20}{section.6.4}%
+\contentsline {section}{\numberline {6.5}\'El\'ements architecturaux}{20}{section.6.5}%
+\contentsline {section}{\numberline {6.6}Convoyeur et colis}{21}{section.6.6}%
+\contentsline {section}{\numberline {6.7}Optimisations de rendu}{21}{section.6.7}%
+\contentsline {chapter}{\numberline {7}Tableau de Bord et Syst\`emes d'Analyse}{22}{chapter.7}%
+\contentsline {section}{\numberline {7.1}Indicateurs cl\'es de performance}{22}{section.7.1}%
+\contentsline {section}{\numberline {7.2}Syst\`eme d'alertes}{23}{section.7.2}%
+\contentsline {section}{\numberline {7.3}Syst\`eme de sc\'enarios hypoth\'etiques}{24}{section.7.3}%
+\contentsline {section}{\numberline {7.4}Horloge de simulation et temporalit\'e}{25}{section.7.4}%
+\contentsline {section}{\numberline {7.5}Interface de contr\^ole}{25}{section.7.5}%
+\contentsline {chapter}{\numberline {8}Conclusion et Perspectives}{26}{chapter.8}%
+\contentsline {section}{\numberline {8.1}Synth\`ese des r\'ealisations}{26}{section.8.1}%
+\contentsline {section}{\numberline {8.2}Apports du projet}{26}{section.8.2}%
+\contentsline {section}{\numberline {8.3}Limites identifi\'ees}{27}{section.8.3}%
+\contentsline {section}{\numberline {8.4}Perspectives d'\'evolution}{27}{section.8.4}%
