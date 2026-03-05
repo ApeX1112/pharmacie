@@ -280,6 +280,27 @@ export class Engine {
         const controlTimerBase = scenarioActive === 'slow_control' ? 6 : 3;
 
         if (agent.state === 'idle') {
+            // --- Idle collision: if too close to another agent, move to a nearby free node ---
+            const tooClose = this.agents.find(other =>
+                other.id !== agent.id &&
+                Math.sqrt((other.x - agent.x) ** 2 + (other.y - agent.y) ** 2) < 25
+            );
+            if (tooClose && this.config.nodes) {
+                const currentNode = this.findNearestNode(agent.x, agent.y);
+                const neighbors = this.getNeighbors(currentNode);
+                // Find a neighbor node that no other agent is near
+                const freeNode = neighbors.find(n => {
+                    return !this.agents.some(a =>
+                        a.id !== agent.id &&
+                        Math.sqrt((a.x - n.x) ** 2 + (a.y - n.y) ** 2) < 30
+                    );
+                });
+                if (freeNode) {
+                    agent.path = [freeNode];
+                    agent.state = 'relocating';
+                    return;
+                }
+            }
             // ========== STOREKEEPER ==========
             if (agent.type === 'Storekeeper') {
                 const reception = this.config.zones.find(z => z.id === 'reception');
@@ -543,6 +564,8 @@ export class Engine {
                 agent.replenishAmount = null;
                 agent.state = 'idle';
 
+            } else if (agent.state === 'relocating') {
+                agent.state = 'idle';
             } else {
                 agent.state = 'idle';
             }
@@ -640,17 +663,71 @@ export class Engine {
         const dist = Math.sqrt(dx * dx + dy * dy);
         const speed = 150;
         let movedDist = 0;
+
+        // --- Collision avoidance (skip when arriving at final destination) ---
+        const COLLISION_DIST = 75;
+        let dodgeX = 0, dodgeY = 0;
+        let speedMultiplier = 1;
+        const nearDestination = agent.path.length <= 1 && dist < 25;
+
+        if (!nearDestination) {
+            const headLen = dist > 0.01 ? dist : 1;
+            const hdx = dx / headLen, hdy = dy / headLen;
+
+            for (const other of this.agents) {
+                if (other.id === agent.id) continue;
+                const sepX = other.x - agent.x;
+                const sepY = other.y - agent.y;
+                const sepDist = Math.sqrt(sepX * sepX + sepY * sepY);
+                if (sepDist > COLLISION_DIST || sepDist < 0.01) continue;
+
+                // Skip collision with idle/stationary agents at destination
+                const otherIdle = !other.path || other.path.length === 0;
+
+                // Other agent's heading
+                let ohdx = 0, ohdy = 0;
+                if (!otherIdle) {
+                    const otx = other.path[0].x - other.x;
+                    const oty = other.path[0].y - other.y;
+                    const ol = Math.sqrt(otx * otx + oty * oty);
+                    if (ol > 0.01) { ohdx = otx / ol; ohdy = oty / ol; }
+                }
+
+                const dot = hdx * ohdx + hdy * ohdy;
+                const pushStrength = (COLLISION_DIST - sepDist) / COLLISION_DIST;
+
+                if (dot < -0.3) {
+                    // Head-on: BOTH agents dodge to their own right
+                    dodgeX += (-hdy) * speed * pushStrength * 0.6;
+                    dodgeY += (hdx) * speed * pushStrength * 0.6;
+                    speedMultiplier = Math.min(speedMultiplier, 0.5 + sepDist / COLLISION_DIST * 0.5);
+                } else {
+                    // Same direction or crossing: if other is ahead, slow down
+                    const aheadDot = sepX * hdx + sepY * hdy;
+                    if (aheadDot > 0) {
+                        speedMultiplier = Math.min(speedMultiplier, 0.15 + (sepDist / COLLISION_DIST) * 0.85);
+                    }
+                    // General repulsion to avoid overlap
+                    if (sepDist < 20) {
+                        const repel = (20 - sepDist) / 20;
+                        dodgeX -= (sepX / sepDist) * speed * repel * 0.3;
+                        dodgeY -= (sepY / sepDist) * speed * repel * 0.3;
+                    }
+                }
+            }
+        }
+
         if (dist < 5) {
             movedDist = dist;
             agent.x = targetNode.x;
             agent.y = targetNode.y;
             agent.path.shift();
         } else {
-            const moveDist = speed * dt;
+            const moveDist = speed * dt * speedMultiplier;
             const activeDist = Math.min(moveDist, dist);
             const ratio = activeDist / dist;
-            agent.x += dx * ratio;
-            agent.y += dy * ratio;
+            agent.x += dx * ratio + dodgeX * dt;
+            agent.y += dy * ratio + dodgeY * dt;
             movedDist = activeDist;
         }
         return movedDist;
