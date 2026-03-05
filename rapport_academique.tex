@@ -1,0 +1,480 @@
+\documentclass[12pt,a4paper]{report}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{setspace}
+\usepackage{tocloft}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,positioning,fit,calc}
+\usepackage{tabularx}
+\usepackage{multirow}
+\usepackage{pifont}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue!70!black,
+    citecolor=blue!70!black,
+    urlcolor=blue!70!black
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\leftmark}
+\fancyhead[R]{\thepage}
+\fancyfoot[C]{\textit{Jumeau Num\'erique d'Entrep\^ot Pharmaceutique}}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+
+\titleformat{\chapter}[display]
+{\normalfont\huge\bfseries\color{blue!70!black}}
+{\chaptertitlename\ \thechapter}{20pt}{\Huge}
+
+\onehalfspacing
+
+\begin{document}
+
+% ===================== PAGE DE GARDE =====================
+\begin{titlepage}
+\centering
+\vspace*{1cm}
+
+{\Large \textbf{Universit\'e / \'Ecole}}\\[0.3cm]
+{\large D\'epartement d'Informatique et de G\'enie Logiciel}\\[1.5cm]
+
+\rule{\textwidth}{1.5pt}\\[0.5cm]
+{\Huge \textbf{Rapport Acad\'emique}}\\[0.3cm]
+{\LARGE \textbf{Conception et R\'ealisation d'un Jumeau Num\'erique}}\\[0.2cm]
+{\LARGE \textbf{pour la Gestion d'un Entrep\^ot Pharmaceutique}}\\[0.5cm]
+\rule{\textwidth}{1.5pt}\\[2cm]
+
+{\Large \textbf{Projet :} Digital Twin Warehouse}\\[0.5cm]
+{\large Application Web Interactive de Simulation Logistique 3D}\\[2cm]
+
+\begin{tabular}{ll}
+\textbf{Fili\`ere :} & Informatique \\
+\textbf{Ann\'ee universitaire :} & 2025 -- 2026 \\
+\end{tabular}
+
+\vfill
+{\large Mars 2026}
+\end{titlepage}
+
+% ===================== TABLE DES MATIERES =====================
+\tableofcontents
+\newpage
+
+% ===================== LISTE DES FIGURES =====================
+\listoffigures
+\newpage
+
+% ===================== LISTE DES TABLEAUX =====================
+\listoftables
+\newpage
+
+% ===================== INTRODUCTION GENERALE =====================
+\chapter{Introduction G\'en\'erale}
+
+\section{Contexte et probl\'ematique}
+
+La logistique pharmaceutique constitue l'un des domaines les plus exigeants en mati\`ere de gestion d'entrep\^ot. Les contraintes r\'eglementaires strictes, la n\'ecessit\'e de tra\c{c}abilit\'e compl\`ete des produits, les conditions de stockage sp\'ecifiques et les imp\'eratifs de rapidit\'e dans la pr\'eparation des commandes imposent une organisation irr\'eprochable des flux physiques et informationnels. Dans ce contexte, les gestionnaires d'entrep\^ots pharmaceutiques font face \`a des d\'efis majeurs : optimiser les parcours des op\'erateurs, anticiper les ruptures de stock, \'equilibrer la charge de travail entre les \'equipes, et garantir un contr\^ole qualit\'e rigoureux avant l'exp\'edition des commandes.
+
+Traditionnellement, l'am\'elioration des processus logistiques repose sur des observations terrain, des \'etudes de temps et mouvements, et des mod\`eles th\'eoriques simplifi\'es. Cependant, ces approches pr\'esentent des limites importantes : elles ne permettent pas de tester des sc\'enarios alternatifs sans perturber les op\'erations r\'eelles, elles peinent \`a capturer la complexit\'e des interactions entre les diff\'erents acteurs de l'entrep\^ot, et elles offrent une vision statique d'un syst\`eme intrins\`equement dynamique.
+
+C'est dans ce contexte que le concept de \textbf{jumeau num\'erique} (Digital Twin) prend tout son sens. Un jumeau num\'erique est une r\'eplique virtuelle fid\`ele d'un syst\`eme physique, capable de simuler son comportement en temps r\'eel, d'analyser ses performances et de pr\'edire l'impact de modifications potentielles. Appliqu\'e \`a la logistique d'entrep\^ot, il permet de cr\'eer un environnement de test s\'ecuris\'e o\`u les d\'ecideurs peuvent exp\'erimenter librement sans risque pour les op\'erations r\'eelles.
+
+\section{Objectifs du projet}
+
+Le pr\'esent projet vise \`a concevoir et r\'ealiser un jumeau num\'erique complet pour un entrep\^ot pharmaceutique. Les objectifs sp\'ecifiques sont les suivants :
+
+\begin{itemize}[leftmargin=2cm]
+    \item D\'evelopper un \textbf{moteur de simulation} capable de mod\'eliser fid\`element les flux logistiques d'un entrep\^ot pharmaceutique, incluant la r\'eception des marchandises, le stockage, la pr\'eparation des commandes, le contr\^ole qualit\'e et l'exp\'edition.
+    \item Cr\'eer une \textbf{visualisation tridimensionnelle} immersive et r\'ealiste de l'entrep\^ot, permettant de suivre en temps r\'eel les d\'eplacements des agents et l'\'evolution des stocks.
+    \item Int\'egrer un \textbf{tableau de bord analytique} avec des indicateurs cl\'es de performance (KPI) calcul\'es dynamiquement.
+    \item Implanter un \textbf{syst\`eme d'alertes} pour la d\'etection automatique des anomalies et situations critiques.
+    \item Offrir une fonctionnalit\'e de \textbf{sc\'enarios hypoth\'etiques} (\textrm{What-If}) permettant de tester l'impact de diff\'erentes configurations sur les performances globales.
+    \item Concevoir une \textbf{interface utilisateur} ergonomique et enti\`erement ex\'ecutable dans un navigateur web, sans installation de logiciel sp\'ecialis\'e.
+\end{itemize}
+
+\section{Organisation du rapport}
+
+Ce rapport est structur\'e en plusieurs chapitres qui couvrent l'ensemble des aspects du projet. Le chapitre~2 pr\'esente l'\'etat de l'art des jumeaux num\'eriques et de la simulation logistique. Le chapitre~3 d\'ecrit l'architecture technique retenue et les choix technologiques effectu\'es. Le chapitre~4 d\'etaille la mod\'elisation de l'entrep\^ot et sa configuration. Le chapitre~5 expose le moteur de simulation et ses algorithmes. Le chapitre~6 traite de la mod\'elisation 3D et du rendu visuel. Le chapitre~7 pr\'esente le tableau de bord et les syst\`emes d'analyse. Enfin, le chapitre~8 conclut ce rapport et propose des perspectives d'\'evolution.
+
+
+% ===================== ETAT DE L'ART =====================
+\chapter{\'Etat de l'Art}
+
+\section{Les jumeaux num\'eriques : d\'efinition et \'evolution}
+
+Le concept de jumeau num\'erique a \'et\'e formalis\'e pour la premi\`ere fois par Michael Grieves en 2002, dans le cadre de la gestion du cycle de vie des produits (Product Lifecycle Management). L'id\'ee fondamentale consiste \`a cr\'eer un mod\`ele virtuel qui \'evolue en parall\`ele avec son homologue physique, refl\'etant en permanence son \'etat actuel et permettant de simuler son comportement futur.
+
+Au fil des ann\'ees, les jumeaux num\'eriques ont \'evolu\'e au-del\`a de la simple r\'eplication statique pour devenir des syst\`emes dynamiques int\'egrant des capacit\'es de simulation, d'analyse et de pr\'ediction. Dans le domaine industriel, ils sont d\'esormais utilis\'es pour la maintenance pr\'edictive, l'optimisation des processus de fabrication, la planification de la cha\^ine d'approvisionnement et la gestion des infrastructures critiques.
+
+L'application des jumeaux num\'eriques \`a la logistique d'entrep\^ot repr\'esente une \'evolution naturelle de cette technologie. Un entrep\^ot est un syst\`eme complexe o\`u de multiples agents (op\'erateurs, machines, syst\`emes de convoyage) interagissent dans un espace physique contraint, suivant des r\`egles op\'erationnelles pr\'ecises. La mod\'elisation fid\`ele de ces interactions n\'ecessite des algorithmes sophistiqu\'es et une capacit\'e de rendu visuel performante.
+
+\section{Simulation \`a \'ev\'enements discrets en logistique}
+
+La simulation \`a \'ev\'enements discrets (Discrete Event Simulation, DES) est la m\'ethode de r\'ef\'erence pour mod\'eliser les syst\`emes logistiques. Elle repose sur le principe que l'\'etat du syst\`eme change \`a des instants discrets, correspondant \`a des \'ev\'enements sp\'ecifiques tels que l'arriv\'ee d'une commande, le d\'ebut d'une op\'eration de picking, ou le passage d'un colis au contr\^ole qualit\'e.
+
+Des logiciels professionnels tels que FlexSim, AnyLogic et Arena sont largement utilis\'es dans l'industrie pour ce type de simulation. Cependant, ces outils pr\'esentent plusieurs limitations : co\^ut de licence \'elev\'e, n\'ecessit\'e d'installation locale, courbe d'apprentissage importante, et difficult\'e de partage des r\'esultats avec les parties prenantes non techniques.
+
+Notre approche se distingue en proposant une simulation directement ex\'ecutable dans un navigateur web, \'eliminant ainsi les barri\`eres d'acc\`es tout en offrant une qualit\'e de visualisation comparable aux solutions professionnelles.
+
+\section{Rendu 3D dans le navigateur avec WebGL}
+
+L'\'evolution de WebGL et de ses surcouches (notamment Three.js) a r\'evolutionn\'e les possibilit\'es de rendu 3D dans le navigateur. WebGL fournit un acc\`es direct au GPU depuis le navigateur, permettant un rendu mat\'eriellement acc\'el\'er\'e avec des performances proches des applications natives.
+
+Three.js, biblioth\`eque construite au-dessus de WebGL, simplifie consid\'erablement le d\'eveloppement d'applications 3D en fournissant des abstractions de haut niveau pour les sc\`enes, cam\'eras, lumi\`eres, mat\'eriaux et g\'eom\'etries. Combin\'e avec React Three Fiber (R3F), qui permet de d\'eclarer des sc\`enes 3D sous forme de composants React, il devient possible de construire des applications complexes m\^elant interface utilisateur 2D et visualisation 3D dans une architecture coh\'erente et maintenable.
+
+\section{Algorithmes de navigation et de pathfinding}
+
+La navigation des agents dans un environnement virtuel est un probl\`eme classique en informatique. L'algorithme A* (A-Star), propos\'e par Peter Hart, Nils Nilsson et Bertram Raphael en 1968, reste la r\'ef\'erence pour la recherche de chemin optimal dans un graphe. Sa combinaison d'un co\^ut r\'eel accumul\'e et d'une heuristique admissible garantit l'optimalit\'e du chemin trouv\'e tout en limitant l'espace de recherche explor\'e.
+
+Dans le contexte d'un entrep\^ot, le graphe de navigation doit refl\'eter fid\`element la topologie des all\'ees et des intersections, interdisant aux agents de traverser les rayonnages ou les murs. La mod\'elisation sous forme de n\oe uds (intersections) et d'ar\^etes (segments d'all\'ee) permet de capturer cette contrainte de mani\`ere \'el\'egante.
+
+
+% ===================== ARCHITECTURE TECHNIQUE =====================
+\chapter{Architecture Technique et Choix Technologiques}
+
+\section{Vue d'ensemble de l'architecture}
+
+L'architecture du syst\`eme repose sur une s\'eparation stricte entre trois couches fonctionnelles : la couche de \textbf{simulation} qui impl\'emente la logique m\'etier pure, la couche de \textbf{gestion d'\'etat} qui centralise les donn\'ees partag\'ees, et la couche de \textbf{pr\'esentation} qui assure le rendu visuel et l'interaction utilisateur.
+
+Cette s\'eparation garantit que le moteur de simulation peut fonctionner ind\'ependamment du rendu graphique, facilitant les tests unitaires et permettant potentiellement une ex\'ecution c\^ot\'e serveur pour des simulations acc\'el\'er\'ees. Le flux de donn\'ees suit un cycle unidirectionnel : la configuration alimente le moteur de simulation, dont les r\'esultats sont synchronis\'es vers un magasin d'\'etat centralis\'e, lequel alimente \`a son tour les composants de rendu 3D, le tableau de bord et la liste des commandes.
+
+\section{Pile technologique}
+
+Le choix des technologies a \'et\'e guid\'e par plusieurs crit\`eres : performances de rendu, r\'eactivit\'e de l'interface, facilit\'e de maintenance, et accessibilit\'e depuis un navigateur web standard.
+
+\begin{table}[H]
+\centering
+\caption{Technologies utilis\'ees dans le projet}
+\label{tab:technologies}
+\begin{tabularx}{\textwidth}{|l|l|X|}
+\hline
+\textbf{Technologie} & \textbf{R\^ole} & \textbf{Justification} \\
+\hline
+React 19 & Framework UI & Composants d\'eclaratifs, hooks, gestion du cycle de vie \\
+\hline
+Vite & Bundler / Serveur de d\'eveloppement & Hot Module Replacement instantan\'e, build optimis\'e \\
+\hline
+React Three Fiber & Rendu 3D d\'eclaratif & Sc\`ene 3D sous forme de composants React \\
+\hline
+Three.js & Moteur WebGL & Rendu mat\'eriellement acc\'el\'er\'e, PBR, ombres \\
+\hline
+Zustand & Gestion d'\'etat & Store minimaliste sans boilerplate, s\'electeurs fins \\
+\hline
+Tailwind CSS & Stylisation & Classes utilitaires, responsive, th\`eme coh\'erent \\
+\hline
+Recharts & Graphiques & Visualisation de donn\'ees en temps r\'eel \\
+\hline
+Framer Motion & Animations UI & Transitions fluides pour l'interface 2D \\
+\hline
+\end{tabularx}
+\end{table}
+
+\section{Architecture des fichiers}
+
+Le projet est organis\'e selon une structure modulaire claire qui refl\`ete la s\'eparation des responsabilit\'es. Le r\'epertoire \texttt{simulation} contient la logique m\'etier pure, compos\'ee du moteur de simulation et du hook de synchronisation. Le r\'epertoire \texttt{store} h\'eberge le magasin d'\'etat Zustand qui centralise toutes les donn\'ees partag\'ees entre les composants. Le r\'epertoire \texttt{components} regroupe l'ensemble des composants React responsables de l'affichage : la carte 3D de l'entrep\^ot, le tableau de bord des indicateurs, la barre lat\'erale de contr\^ole, la liste des commandes, le panneau d'alertes, le panneau de sc\'enarios, le modal de configuration des arriv\'ees, et le modal de gestion des quarts de travail.
+
+Le fichier de configuration de l'entrep\^ot, au format JSON, est stock\'e dans le r\'epertoire public et charg\'e dynamiquement au d\'emarrage de l'application. Cette approche permet de modifier la disposition de l'entrep\^ot sans recompiler l'application.
+
+\section{Cycle de donn\'ees unidirectionnel}
+
+Le flux de donn\'ees dans l'application suit un cycle unidirectionnel rigoureux. La configuration JSON alimente le moteur de simulation. \`A chaque image d'animation, le hook de synchronisation charge l'\'etat actuel des agents depuis le magasin Zustand, transmet ces donn\'ees au moteur, r\'ecup\`ere les r\'esultats du calcul (positions mises \`a jour, m\'etriques, alertes, commandes), et synchronise ces r\'esultats vers le magasin. Les composants React, abonn\'es aux tranches sp\'ecifiques du magasin, se mettent \`a jour automatiquement lorsque les donn\'ees qu'ils observent changent. Cette architecture \'elimine les probl\`emes de synchronisation et garantit une coh\'erence parfaite entre la simulation et l'affichage.
+
+
+% ===================== MODELISATION DE L'ENTREPOT =====================
+\chapter{Mod\'elisation de l'Entrep\^ot}
+
+\section{Dimensions et disposition g\'en\'erale}
+
+L'entrep\^ot est mod\'elis\'e sur une grille bidimensionnelle de 1200 par 900 unit\'es. Cette grille d\'efinit l'espace de travail dans lequel \'evoluent les agents et sont positionn\'ees les diff\'erentes zones fonctionnelles. La conversion vers l'espace tridimensionnel s'effectue via un facteur d'\'echelle de 0.05, ce qui transforme l'entrep\^ot en un espace 3D de 60 par 45 unit\'es Three.js, garantissant des proportions visuelles r\'ealistes dans le navigateur.
+
+\section{Types de zones fonctionnelles}
+
+L'entrep\^ot est divis\'e en plusieurs types de zones, chacune jouant un r\^ole sp\'ecifique dans la cha\^ine logistique.
+
+\begin{table}[H]
+\centering
+\caption{Types de zones de l'entrep\^ot}
+\label{tab:zones}
+\begin{tabularx}{\textwidth}{|l|c|X|}
+\hline
+\textbf{Type de zone} & \textbf{Quantit\'e} & \textbf{R\^ole} \\
+\hline
+Picking & 24 & Zones de pr\'el\`evement o\`u les pr\'eparateurs collectent les articles \\
+\hline
+Storage (R\'eserve) & 4 & Zones de stockage de r\'eserve pour le r\'eapprovisionnement \\
+\hline
+Inbound (R\'eception) & 1 & Zone de r\'eception des marchandises entrantes \\
+\hline
+Conveyor (Tapis roulant) & 1 & Syst\`eme de convoyage pour le contr\^ole qualit\'e \\
+\hline
+Outbound (Exp\'edition) & 1 & Baie d'exp\'edition des commandes termin\'ees \\
+\hline
+Workstation & 1 & Zone de contr\^ole pilulier \\
+\hline
+\end{tabularx}
+\end{table}
+
+Chaque zone est caract\'eris\'ee par un identifiant unique, un nom descriptif, des coordonn\'ees de position, des dimensions, un niveau de stock actuel, une capacit\'e maximale et un seuil critique de r\'eapprovisionnement. Les 24 zones de picking sont r\'eparties en groupes identifi\'es par des lettres (A \`a D, E, F1 \`a F4, G \`a Q, R1 \`a R2), refl\'etant l'organisation physique typique d'un entrep\^ot pharmaceutique r\'eel.
+
+\section{Graphe de navigation}
+
+Le d\'eplacement des agents dans l'entrep\^ot ne s'effectue pas en ligne droite. Il suit un graphe de navigation compos\'e de n\oe uds et d'ar\^etes qui mod\'elise fid\`element le r\'eseau d'all\'ees de l'entrep\^ot. Ce graphe comprend 47 n\oe uds repr\'esentant les intersections et les extr\'emit\'es d'all\'ees, reli\'es par plus de 50 ar\^etes bidirectionnelles.
+
+La topologie du graphe reproduit les corridors r\'eels de l'entrep\^ot : un corridor sup\'erieur traversant horizontalement la partie haute de l'entrep\^ot, des all\'ees verticales desservant les zones A \`a E, une all\'ee centrale (all\'ee F) formant la colonne vert\'ebrale de l'entrep\^ot, des rang\'ees horizontales desservant les zones G \`a Q, une all\'ee droite pour les zones R1 et R2, et un hub inf\'erieur o\`u convergent les flux principaux.
+
+Les n\oe uds sont strat\'egiquement positionn\'es dans les all\'ees, entre les rayonnages, garantissant qu'aucun agent ne traverse jamais un rack ou un mur lors de ses d\'eplacements. Cette mod\'elisation assure un r\'ealisme visuel essentiel pour la cr\'edibilit\'e de la simulation.
+
+
+% ===================== MOTEUR DE SIMULATION =====================
+\chapter{Moteur de Simulation}
+
+\section{Architecture du moteur}
+
+Le moteur de simulation constitue le c\oe ur algorithmique de l'application. Il est con\c{c}u comme un module autonome, totalement ind\'ependant du framework de rendu, et impl\'emente l'ensemble de la logique m\'etier de l'entrep\^ot : g\'en\'eration des arriv\'ees, cr\'eation des commandes, gestion des agents, calcul des m\'etriques et d\'etection des alertes.
+
+Le moteur fonctionne selon le principe du \textbf{delta time} : le temps r\'eel \'ecoul\'e entre deux images d'animation est multipli\'e par un facteur de vitesse configurable par l'utilisateur (1x, 2x, 5x, 10x). Cette approche garantit que le comportement de la simulation est ind\'ependant du taux de rafra\^ichissement de l'\'ecran. Un ordinateur affichant 30 images par seconde et un autre en affichant 120 produisent exactement les m\^emes r\'esultats de simulation sur une dur\'ee identique.
+
+L'horloge interne du moteur d\'emarre \`a 6 heures du matin, simulant le d\'ebut d'une journ\'ee de travail typique dans un entrep\^ot pharmaceutique. \`A chaque cycle de mise \`a jour, le moteur ex\'ecute s\'equentiellement les op\'erations suivantes : g\'en\'eration des arriv\'ees entrantes par zone, g\'en\'eration des commandes sortantes, animation du convoyeur, mise \`a jour des agents via leur machine \`a \'etats, calcul des m\'etriques avanc\'ees, et d\'etection des alertes.
+
+\section{Distribution bimodale des arriv\'ees}
+
+L'intensit\'e des arriv\'ees de marchandises dans l'entrep\^ot suit une distribution bimodale gaussienne, mod\'elisant fid\`element les deux pics d'activit\'e observ\'es dans un entrep\^ot r\'eel : un pic matinal aux alentours de 9 heures et un pic en d\'ebut d'apr\`es-midi vers 14 heures.
+
+L'intensit\'e est calcul\'ee selon la formule :
+
+\begin{equation}
+\lambda(h) = \left( w_1 \cdot G_1(h) + w_2 \cdot G_2(h) \right) \times \text{maxRate}
+\end{equation}
+
+o\`u chaque composante gaussienne est d\'efinie par :
+
+\begin{equation}
+G_i(h) = \exp\left( -\frac{1}{2} \left( \frac{h - \text{peak}_i}{\sigma_i} \right)^2 \right)
+\end{equation}
+
+Les param\`etres de cette distribution sont configurables ind\'ependamment pour chaque zone de r\'eception : position temporelle de chaque pic, \'ecart-type contr\^olant la largeur du pic, poids relatif de chaque composante, et d\'ebit maximal en unit\'es par heure. Un m\'ecanisme d'accumulateur fractionnaire convertit le taux continu en \'ev\'enements discrets, assurant une g\'en\'eration r\'ealiste des arriv\'ees. Les marchandises g\'en\'er\'ees sont ajout\'ees \`a une file d'attente de r\'eception que les magasiniers consomment progressivement.
+
+\section{G\'en\'eration des commandes sortantes}
+
+Les commandes sortantes suivent \'egalement une distribution bimodale, avec un premier pic vers 10 heures et un second vers 15 heures. Lorsqu'une commande est d\'eclench\'ee, le syst\`eme v\'erifie d'abord qu'un plafond de 5 commandes simultan\'ees en attente n'est pas atteint, s\'electionne al\'eatoirement une zone de picking cible, et d\'etermine une quantit\'e comprise entre 30 et 100 unit\'es.
+
+Chaque commande poss\`ede un identifiant unique et suit un cycle de vie complet en cinq \'etats : en attente (\textit{pending}), assign\'ee \`a un pr\'eparateur (\textit{assigned}), d\'epos\'ee sur le convoyeur (\textit{on\_conveyor}), contr\^ol\'ee (\textit{controlled}) et termin\'ee (\textit{completed}). Chaque transition est horodat\'ee pr\'ecis\'ement afin de calculer les indicateurs de performance temporels.
+
+\section{Agents et machines \`a \'etats finis}
+
+L'entrep\^ot est peup\'e de sept agents r\'epartis en trois types fonctionnels, chacun gouvern\'e par une machine \`a \'etats finis (Finite State Machine, FSM) qui d\'etermine son comportement dynamique.
+
+\subsection{Magasiniers (Storekeepers)}
+
+Les trois magasiniers g\`erent le flux entrant : r\'eception des marchandises et rangement dans les zones de r\'eserve. Leur premi\`ere priorit\'e est de traiter les arriv\'ees en attente dans la file de r\'eception. Lorsqu'un arrivage est disponible, le magasinier se d\'eplace vers la zone de r\'eception, r\'ecup\`ere la marchandise, puis se dirige vers la zone de r\'eserve cible pour y d\'eposer le stock. En l'absence d'arrivage, le magasinier peut effectuer une tourn\'ee d'inspection al\'eatoire vers une zone de r\'eserve.
+
+\subsection{Pr\'eparateurs (Pickers)}
+
+Les trois pr\'eparateurs constituent le maillon central de la cha\^ine logistique. Leur premi\`ere priorit\'e est la pr\'eparation des commandes : le pr\'eparateur prend la premi\`ere commande en attente, se rend dans la zone de picking concern\'ee, et effectue le pr\'el\`evement. Le temps de pr\'el\`evement est proportionnel \`a la quantit\'e command\'ee. Une fois le picking termin\'e, le pr\'eparateur transporte les articles jusqu'au convoyeur.
+
+Leur seconde priorit\'e est le r\'eapprovisionnement. Lorsqu'aucune commande n'est en attente, les pr\'eparateurs scannent toutes les zones de picking \`a la recherche de celles dont le stock est descendu sous le seuil critique. Le r\'eapprovisionnement suit une logique en cascade : d'abord la r\'eserve affili\'ee, puis toute zone de stockage disponible. Un m\'ecanisme anti-duplication emp\^eche plusieurs agents de r\'eapprovisionner simultan\'ement la m\^eme zone.
+
+\subsection{Contr\^oleur (Controller)}
+
+Le contr\^oleur unique g\`ere le contr\^ole qualit\'e et l'exp\'edition. Quand un colis atteint l'extr\'emit\'e du convoyeur, le contr\^oleur s'y rend, inspecte le colis pendant une dur\'ee d\'etermin\'ee, puis le transporte vers la zone d'exp\'edition o\`u la commande est marqu\'ee comme termin\'ee.
+
+\section{Algorithme de pathfinding A*}
+
+Tous les d\'eplacements des agents utilisent l'algorithme A* pour d\'eterminer le chemin le plus court dans le graphe de navigation. L'heuristique retenue est la distance euclidienne entre le n\oe ud courant et le n\oe ud de destination, garantissant l'admissibilit\'e de l'heuristique et donc l'optimalit\'e du chemin trouv\'e.
+
+Le processus de navigation se d\'eroule en trois \'etapes. D'abord, le syst\`eme identifie le n\oe ud du graphe le plus proche de la position actuelle de l'agent et le n\oe ud le plus proche de la zone de destination. Ensuite, l'algorithme A* calcule la s\'equence optimale de n\oe uds \`a traverser. Enfin, l'agent se d\'eplace en interpolation lin\'eaire vers chaque n\oe ud successif \`a une vitesse de 150 unit\'es par seconde, calibr\'ee pour un mouvement visuellement r\'ealiste.
+
+\section{Syst\`eme d'\'evitement de collisions}
+
+Un syst\`eme sophistiqu\'e d'\'evitement de collisions emp\^eche les agents de se superposer visuellement. \`A chaque it\'eration, le moteur calcule la distance euclidienne entre chaque paire d'agents. Lorsque cette distance passe sous un seuil de 75 unit\'es, le syst\`eme active l'\'evitement.
+
+Le type de rencontre est d\'etermin\'e par le produit scalaire des vecteurs de direction normalis\'es des deux agents. Lors d'une rencontre frontale, les deux agents esquivent simultan\'ement vers leur droite respective gr\^ace \`a un vecteur perpendiculaire, avec une force proportionnelle \`a la proximit\'e. Lorsqu'un agent en suit un autre, il d\'ec\'el\`ere progressivement. Sous 20 unit\'es, une force de r\'epulsion radiale \'evite tout chevauchement. L'\'evitement est d\'esactiv\'e lorsqu'un agent atteint sa destination pour pr\'evenir les ph\'enom\`enes d'orbite.
+
+Un m\'ecanisme compl\'ementaire de stationnement intelligent garantit que les agents inactifs maintiennent une distance minimale entre eux, se relocalisant automatiquement vers un n\oe ud voisin libre si n\'ecessaire.
+
+\section{Gestion des quarts de travail}
+
+Les magasiniers et les pr\'eparateurs suivent des horaires de travail configurables, organis\'es en deux blocs par jour avec une pause entre les deux. Le syst\`eme prend en charge les quarts de jour standard, les quarts de soir\'ee et les quarts de nuit avec franchissement de minuit.
+
+\`A la fin de son quart, un agent ne dispara\^it pas imm\'ediatement : il termine d'abord sa t\^ache en cours, puis se dirige vers la sortie de l'entrep\^ot avant de passer en mode inactif. Il r\'eappara\^it automatiquement au d\'ebut de son prochain bloc de travail. Le contr\^oleur, quant \`a lui, assure une couverture continue 24 heures sur 24.
+
+
+% ===================== MODELISATION 3D =====================
+\chapter{Mod\'elisation 3D et Rendu Visuel}
+
+\section{Environnement et mat\'eriaux physiques}
+
+Le rendu 3D de l'entrep\^ot exploite les capacit\'es de rendu physiquement r\'ealiste (Physically Based Rendering, PBR) de Three.js. Le sol est textur\'e avec un mat\'eriau simulant le b\'eton, recevant dynamiquement les ombres projet\'ees par l'ensemble des \'el\'ements de la sc\`ene. L'\'eclairage combine une lumi\`ere directionnelle principale g\'en\'erant des ombres port\'ees nettes, avec une carte d'ombres de haute r\'esolution, et une lumi\`ere h\'emisph\'erique simulant l'\'eclairage ambiant typique des grands hangars industriels.
+
+\section{Conversion des coordonn\'ees 2D vers 3D}
+
+Les coordonn\'ees bidimensionnelles du moteur de simulation sont converties en coordonn\'ees tridimensionnelles via un facteur d'\'echelle de 0.05. L'entrep\^ot de 1200 par 900 unit\'es en 2D devient un espace de 60 par 45 unit\'es Three.js, centr\'e \`a l'origine du rep\`ere 3D pour faciliter le positionnement de la cam\'era et l'\'eclairage.
+
+\section{Rayonnages et stockage}
+
+Les rayonnages sont construits \`a partir de g\'eom\'etries partag\'ees pour optimiser les performances. Chaque rack est compos\'e de poteaux verticaux cylindriques en m\'etal gris fonc\'e, d'\'etag\`eres horizontales en gris clair m\'etallique, et de bo\^ites de stock g\'en\'er\'ees proc\'eduralement en fonction du niveau de stock actuel de la zone. La hauteur des racks varie selon le type de zone, et le nombre d'\'etag\`eres est calcul\'e dynamiquement, offrant un retour visuel imm\'ediat sur l'\'etat des stocks.
+
+\section{Animations humano\"ides proc\'edurales}
+
+Les agents sont repr\'esent\'es par des personnages humano\"ides anim\'es de mani\`ere proc\'edurale, sans recours \`a des squelettes import\'es ni \`a des fichiers d'animation pr\'ecalcul\'es. L'animation de marche est g\'en\'er\'ee en temps r\'eel : les jambes se balancent en opposition de phase selon une fonction sinuso\"idale, le buste oscille verticalement pour imiter les pas, et une transition fluide par interpolation lin\'eaire ram\`ene les membres en position droite lorsque l'agent s'arr\^ete.
+
+\section{\'El\'ements architecturaux}
+
+L'entrep\^ot est compl\'et\'e par des \'el\'ements architecturaux renfor\c{c}ant l'immersion : murs semi-transparents d\'elimitant l'espace, colonnes structurelles en acier, conduits de ventilation au plafond, et fermes triangulaires (trusses) soutenant la toiture. Chaque \'el\'ement utilise des mat\'eriaux PBR distincts avec des propri\'et\'es de m\'etallit\'e, de rugosit\'e et de transparence soigneusement calibr\'ees.
+
+\section{Convoyeur et colis}
+
+Le convoyeur est rendu avec des rouleaux cylindriques en rotation continue et un mat\'eriau m\'etallique r\'ealiste. Les colis d\'epos\'es par les pr\'eparateurs sont repr\'esent\'es par des bo\^ites color\'ees al\'eatoirement, positionn\'ees par interpolation lin\'eaire le long du tapis selon leur attribut de progression. Un colis au d\'ebut du tapis a une progression de 0, tandis qu'un colis arriv\'e en bout de cha\^ine a une progression de 1, pr\^et pour le contr\^ole qualit\'e.
+
+\section{Optimisations de rendu}
+
+Plusieurs optimisations garantissent la fluidit\'e du rendu malgr\'e la complexit\'e de la sc\`ene. Les g\'eom\'etries et mat\'eriaux sont partag\'es entre les instances similaires, \'evitant la duplication en m\'emoire. Tous les composants 3D sont envelopp\'es dans des m\'emorisations React pour \'eviter les recalculs inutiles. Les textures et calculs co\^uteux sont mis en cache via des hooks sp\'ecialis\'es. L'interface textuelle 2D est rafra\^ichie \`a une fr\'equence r\'eduite pour lib\'erer des ressources processeur au profit du rendu 3D.
+
+
+% ===================== TABLEAU DE BORD ET ANALYSE =====================
+\chapter{Tableau de Bord et Syst\`emes d'Analyse}
+
+\section{Indicateurs cl\'es de performance}
+
+Le tableau de bord affiche en temps r\'eel sept indicateurs cl\'es de performance calcul\'es dynamiquement par le moteur de simulation.
+
+\begin{table}[H]
+\centering
+\caption{Indicateurs cl\'es de performance du tableau de bord}
+\label{tab:kpis}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Indicateur} & \textbf{Description} \\
+\hline
+Temps moyen de pr\'eparation & Moyenne des 20 derniers temps \'ecoul\'es entre l'assignation d'une commande et son d\'ep\^ot sur le convoyeur \\
+\hline
+Temps moyen d'attente au contr\^ole & Moyenne des 20 derniers temps d'attente des colis sur le convoyeur avant le contr\^ole qualit\'e \\
+\hline
+Taux d'utilisation des pr\'eparateurs & Pourcentage de pr\'eparateurs actuellement occup\'es par rapport au nombre total \\
+\hline
+Taux de saturation du convoyeur & Pourcentage de la capacit\'e du convoyeur actuellement utilis\'ee \\
+\hline
+Taux de rupture de stock & Pourcentage de zones de picking dont le stock est \'epuis\'e \\
+\hline
+Commandes en attente & Nombre de commandes ayant le statut en attente \\
+\hline
+D\'ebit horaire & Nombre de commandes termin\'ees divis\'e par le nombre d'heures \'ecoul\'ees \\
+\hline
+\end{tabularx}
+\end{table}
+
+Les m\'etriques temporelles sont calcul\'ees sur une fen\^etre glissante des vingt derni\`eres commandes, \'evitant que les donn\'ees initiales ne faussent les indicateurs courants. Cette approche fournit une vision repr\'esentative des performances actuelles de l'entrep\^ot.
+
+\section{Syst\`eme d'alertes}
+
+Le moteur de simulation int\`egre un syst\`eme de d\'etection automatique des anomalies qui identifie cinq types de situations critiques : rupture de stock compl\`ete (s\'ev\'erit\'e critique), stock critique sous la moiti\'e du seuil (avertissement), saturation du convoyeur avec plus de cinq colis en file (avertissement), surcharge des pr\'eparateurs lorsque tous sont occup\'es avec plus de trois commandes en attente (critique), et saturation du contr\^ole avec plus de trois colis en attente d'inspection (avertissement).
+
+Chaque alerte est caract\'eris\'ee par un identifiant unique, un type, un niveau de s\'ev\'erit\'e, un message descriptif et la r\'ef\'erence de la zone concern\'ee. Les alertes sont synchronis\'ees vers le magasin d'\'etat centralis\'e et affich\'ees dans un panneau d\'edi\'e de l'interface, avec un codage couleur distinguant les avertissements des situations critiques.
+
+\section{Syst\`eme de sc\'enarios hypoth\'etiques}
+
+Le syst\`eme de sc\'enarios \textit{What-If} constitue l'un des outils les plus puissants du jumeau num\'erique. Il permet aux d\'ecideurs de tester l'impact de modifications hypoth\'etiques sur les performances de l'entrep\^ot, sans risque pour les op\'erations r\'eelles.
+
+Le fonctionnement repose sur un m\'ecanisme de sauvegarde et de restauration. Avant d'appliquer un sc\'enario, le syst\`eme capture un instantan\'e complet de l'\'etat courant (m\'etriques, param\`etres, nombre d'agents). L'utilisateur peut ensuite appliquer l'un des sc\'enarios pr\'ed\'efinis et observer son impact sur les indicateurs. \`A tout moment, il peut r\'einitialiser l'\'etat pour revenir \`a la configuration de r\'ef\'erence.
+
+\begin{table}[H]
+\centering
+\caption{Sc\'enarios What-If disponibles}
+\label{tab:scenarios}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Sc\'enario} & \textbf{Effet} \\
+\hline
+Augmentation de 20\% des commandes & Augmente le d\'ebit maximal de toutes les arriv\'ees et commandes de 20\% \\
+\hline
+Retrait d'un pr\'eparateur & Retire le dernier pr\'eparateur de la simulation \\
+\hline
+Pic de commandes frigo & Double le d\'ebit des commandes sortantes \\
+\hline
+Ruptures fr\'equentes & Force le stock de toutes les zones de picking juste sous le seuil critique \\
+\hline
+Contr\^ole ralenti & Double le temps de contr\^ole qualit\'e \\
+\hline
+\end{tabularx}
+\end{table}
+
+\section{Horloge de simulation et temporalit\'e}
+
+L'interface affiche en permanence l'heure et le jour simulat\'es, permettant \`a l'utilisateur de situer les \'ev\'enements dans le temps. La vitesse de simulation est ajustable en temps r\'eel, offrant la possibilit\'e d'acc\'el\'erer la simulation pour observer les tendances \`a long terme ou de la ralentir pour analyser un \'ev\'enement sp\'ecifique en d\'etail.
+
+\section{Interface de contr\^ole}
+
+La barre lat\'erale de l'application centralise les contr\^oles de la simulation : bouton de lecture et de pause, s\'election de la vitesse de simulation, acc\`es aux panneaux de configuration des arriv\'ees, des quarts de travail et des sc\'enarios. L'interface est con\c{c}ue pour \^etre intuitive, permettant m\^eme \`a un utilisateur non technique de ma\^itriser rapidement l'ensemble des fonctionnalit\'es.
+
+
+% ===================== CONCLUSION =====================
+\chapter{Conclusion et Perspectives}
+
+\section{Synth\`ese des r\'ealisations}
+
+Le pr\'esent projet a permis de concevoir et de r\'ealiser un jumeau num\'erique complet pour un entrep\^ot pharmaceutique, directement ex\'ecutable dans un navigateur web. Le syst\`eme int\`egre un moteur de simulation reproduisant fid\`element les flux logistiques (r\'eception, stockage, pr\'eparation, contr\^ole qualit\'e, exp\'edition), une visualisation tridimensionnelle immersive avec des animations proc\'edurales r\'ealistes, un tableau de bord analytique avec sept indicateurs cl\'es de performance, un syst\`eme d'alertes pour la d\'etection d'anomalies, et un m\'ecanisme de sc\'enarios hypoth\'etiques pour l'aide \`a la d\'ecision.
+
+L'architecture technique retenue, fond\'ee sur React, Three.js et Zustand, d\'emontre qu'il est possible de construire des applications de simulation complexes enti\`erement c\^ot\'e client, sans serveur d\'edi\'e, tout en maintenant des performances de rendu fluides. La s\'eparation stricte entre logique de simulation et rendu visuel garantit la maintenabilit\'e et l'\'evolutivit\'e du syst\`eme.
+
+Les algorithmes mis en \oe uvre, notamment le pathfinding A*, les machines \`a \'etats finis pour le comportement des agents, les distributions bimodales pour la g\'en\'eration d'\'ev\'enements, et le syst\`eme d'\'evitement de collisions, conf\`erent \`a la simulation un r\'ealisme et une fid\'elit\'e remarquables par rapport aux op\'erations d'un entrep\^ot r\'eel.
+
+\section{Apports du projet}
+
+Ce projet apporte plusieurs contributions significatives. Sur le plan technique, il d\'emontre la faisabilit\'e d'un jumeau num\'erique enti\`erement web, accessible sans installation. Sur le plan fonctionnel, il offre aux gestionnaires d'entrep\^ots un outil de simulation et d'analyse complet. Sur le plan p\'edagogique, il illustre l'int\'egration de concepts avanc\'es en informatique : algorithmique de graphes, simulation stochastique, rendu 3D temps r\'eel et architecture logicielle modulaire.
+
+\section{Limites identifi\'ees}
+
+Malgr\'e ses atouts, le syst\`eme pr\'esente certaines limites. La simulation s'ex\'ecute enti\`erement c\^ot\'e client, ce qui limite la complexit\'e des sc\'enarios simulables sur des machines peu puissantes. Le graphe de navigation est statique et ne s'adapte pas dynamiquement aux modifications de l'agencement. Les distributions d'arriv\'ees, bien que configurables, restent des mod\`eles simplifi\'es de la r\'ealit\'e.
+
+\section{Perspectives d'\'evolution}
+
+Plusieurs pistes d'\'evolution sont envisag\'ees pour enrichir le syst\`eme. L'int\'egration de donn\'ees r\'eelles en provenance d'un syst\`eme de gestion d'entrep\^ot (WMS) permettrait de transformer le jumeau num\'erique en un outil de supervision en temps r\'eel. L'ajout d'algorithmes d'intelligence artificielle, tels que l'apprentissage par renforcement, pourrait optimiser automatiquement les strat\'egies d'allocation des agents et de r\'eapprovisionnement. L'extension du mod\`ele \`a plusieurs \'etages ou \`a un r\'eseau d'entrep\^ots interconnect\'es \'elargirait le champ d'application. Enfin, l'int\'egration de la r\'ealit\'e virtuelle (VR) ou augment\'ee (AR) offrirait une exp\'erience d'immersion encore plus compl\`ete pour la formation des op\'erateurs.
+
+
+% ===================== BIBLIOGRAPHIE =====================
+\begin{thebibliography}{99}
+
+\bibitem{grieves2002} Grieves, M. (2002). \textit{Digital Twin: Manufacturing Excellence through Virtual Factory Replication}. White Paper.
+
+\bibitem{react} Meta Platforms. (2024). \textit{React -- A JavaScript library for building user interfaces}. \url{https://react.dev}
+
+\bibitem{threejs} Three.js contributors. (2024). \textit{Three.js -- JavaScript 3D Library}. \url{https://threejs.org}
+
+\bibitem{r3f} Poimandres. (2024). \textit{React Three Fiber}. \url{https://docs.pmnd.rs/react-three-fiber}
+
+\bibitem{zustand} Poimandres. (2024). \textit{Zustand -- Bear necessities for state management in React}. \url{https://zustand-demo.pmnd.rs}
+
+\bibitem{vite} Evan You. (2024). \textit{Vite -- Next Generation Frontend Tooling}. \url{https://vitejs.dev}
+
+\bibitem{astar} Hart, P. E., Nilsson, N. J., \& Raphael, B. (1968). A formal basis for the heuristic determination of minimum cost paths. \textit{IEEE Transactions on Systems Science and Cybernetics}, 4(2), 100-107.
+
+\bibitem{fsm} Wagner, F. (2006). \textit{Modeling Software with Finite State Machines}. Auerbach Publications.
+
+\bibitem{des} Banks, J., Carson, J. S., Nelson, B. L., \& Nicol, D. M. (2010). \textit{Discrete-Event System Simulation}. Prentice Hall.
+
+\bibitem{flexsim} FlexSim Software Products. (2024). \textit{FlexSim Simulation Software}. \url{https://www.flexsim.com}
+
+\bibitem{webgl} Khronos Group. (2024). \textit{WebGL Specification}. \url{https://www.khronos.org/webgl}
+
+\bibitem{pbr} Pharr, M., Jakob, W., \& Humphreys, G. (2016). \textit{Physically Based Rendering: From Theory to Implementation}. Morgan Kaufmann.
+
+\end{thebibliography}
+
+\end{document}
