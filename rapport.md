@@ -112,10 +112,140 @@ Lors du premier montage, les boîtes de stock se mélangeaient à l'armature des
 
 ---
 
-## 8. Conclusion et Perspectives
+## 8. Système d'Évitement de Collisions (Collision Avoidance)
+
+L'un des ajouts les plus importants au moteur de simulation est un système complet d'évitement de collisions entre agents. Ce système fonctionne entièrement au sein de la méthode `followPath()` de `Engine.js`, sans modifier la logique de pathfinding A* existante.
+
+### 8.1. Détection de Proximité
+
+À chaque itération du moteur, avant de déplacer un agent le long de son chemin, le système calcule la **distance euclidienne** entre cet agent et chaque autre agent de la simulation :
+
+```
+separation = √((other.x - agent.x)² + (other.y - agent.y)²)
+```
+
+Si cette distance est inférieure au rayon de collision configuré (`COLLISION_DIST = 75` unités), le système active les mécanismes d'avoidance. Ce rayon a été calibré expérimentalement pour correspondre à la distance visuelle réaliste entre deux opérateurs dans un entrepôt.
+
+### 8.2. Calcul des Vecteurs de Direction (Heading Vectors)
+
+Pour déterminer le type de rencontre entre deux agents, le système calcule le **cap normalisé** (heading vector) de chaque agent vers son prochain nœud de chemin :
+
+```
+heading = (targetNode.position - agent.position) / ||targetNode.position - agent.position||
+```
+
+Le **produit scalaire** (dot product) entre les deux vecteurs de cap détermine la relation géométrique :
+- `dot < -0.3` → Les agents se déplacent dans des **directions opposées** (rencontre frontale)
+- `dot ≥ -0.3` → Les agents se déplacent dans la **même direction** ou se croisent latéralement
+
+### 8.3. Stratégie 1 : Esquive Latérale (Head-On Dodge)
+
+Lorsque deux agents se dirigent l'un vers l'autre (frontalement), **les deux agents esquivent simultanément vers leur droite respective**. L'offset perpendiculaire est calculé à partir du vecteur de direction de l'agent :
+
+```javascript
+// Vecteur perpendiculaire (droite) = (-heading.y, heading.x)
+dodgeX += (-hdy) * speed * pushStrength * 0.6;
+dodgeY += (hdx) * speed * pushStrength * 0.6;
+```
+
+Le `pushStrength` est proportionnel à la proximité : plus les agents sont proches, plus la force de déviation est intense. Cette force est **proportionnelle à la vitesse de déplacement** (`speed = 150 unités/s`) pour garantir un décalage visible et efficace.
+
+De plus, la vitesse de l'agent est réduite pendant l'approche frontale pour laisser le temps à l'esquive de s'effectuer :
+```javascript
+speedMultiplier = min(speedMultiplier, 0.5 + (separation / COLLISION_DIST) * 0.5)
+```
+
+### 8.4. Stratégie 2 : Décélération Progressive (Following Slowdown)
+
+Quand un agent rattrape un autre agent dans la même direction de déplacement, il **ralentit progressivement** au lieu de s'arrêter brusquement. La vitesse est réduite linéairement en fonction de la distance :
+
+```javascript
+speedMultiplier = min(speedMultiplier, 0.15 + (separation / COLLISION_DIST) * 0.85)
+```
+
+Cela produit un comportement naturel : l'agent derrière maintient une distance de sécurité avec celui devant lui, avec un ralentissement fluide allant de 100% à 15% de la vitesse normale.
+
+### 8.5. Stratégie 3 : Répulsion Générale (Overlap Prevention)
+
+Pour les cas où deux agents se retrouvent extrêmement proches (distance < 20 unités), une **force de répulsion radiale** les pousse en sens opposé :
+
+```javascript
+repulsion = (20 - separation) / 20;
+dodgeX -= (sepX / sepDist) * speed * repulsion * 0.3;
+dodgeY -= (sepY / sepDist) * speed * repulsion * 0.3;
+```
+
+Ce mécanisme agit comme un « ressort » entre les agents, garantissant qu'ils ne se chevauchent jamais visuellement, même en cas de convergence rapide.
+
+### 8.6. Désactivation à l'Arrivée (Anti-Orbiting)
+
+Un problème critique identifié et résolu est le **phénomène d'orbite** : lorsque deux agents arrivent au même nœud de destination, les forces de répulsion les font tourner indéfiniment l'un autour de l'autre.
+
+La solution : le système désactive **entièrement** l'évitement de collision quand un agent arrive à sa destination finale (`path.length <= 1 && dist < 25`). L'agent atteint son nœud cible sans perturbation, et c'est le **système de stationnement** (section suivante) qui prend le relais pour les éloigner.
+
+---
+
+## 9. Stationnement Intelligent des Agents Inactifs (Idle Parking)
+
+### 9.1. Problématique
+
+Sans gestion spécifique, les agents inactifs (sans commande ni tâche assignée) restent immobiles à leur dernière position. Si deux agents terminent leur tâche au même nœud du graphe, ils se superposent visuellement, ce qui est irréaliste.
+
+### 9.2. Mécanisme de Détection et Relocalisation
+
+Au début de chaque cycle de mise à jour, quand un agent est en état `idle`, le système vérifie si un autre agent se trouve à moins de **25 unités** :
+
+```javascript
+const tooClose = this.agents.find(other =>
+    other.id !== agent.id &&
+    Math.sqrt((other.x - agent.x)² + (other.y - agent.y)²) < 25
+);
+```
+
+Si c'est le cas, le système :
+1. Identifie le **nœud le plus proche** de l'agent via `findNearestNode()`
+2. Récupère les **nœuds voisins** via `getNeighbors()` (nœuds connectés par une arête dans le graphe)
+3. Cherche un nœud voisin **libre** (aucun autre agent à moins de 30 unités)
+4. Assigne ce nœud comme destination et passe l'agent en état `relocating`
+
+### 9.3. État FSM « Relocating »
+
+Un nouvel état `relocating` a été ajouté à la machine à états finis des agents. Cet état est traité dans la section des transitions d'état (`STATE TRANSITIONS`) de `updateAgentBehavior()`. Une fois que l'agent atteint le nœud libre, il repasse automatiquement en état `idle`, prêt à recevoir de nouvelles tâches.
+
+Ce mécanisme garantit que les agents inactifs sont toujours visuellement séparés les uns des autres, occupant chacun un nœud distinct du graphe de l'entrepôt.
+
+---
+
+## 10. Défis et Calibration du Système d'Évitement
+
+### 10.1. Proportionnalité des Forces
+
+L'un des défis majeurs a été de calibrer les forces d'esquive pour qu'elles soient **perceptibles mais pas déstabilisantes**. Les premières implémentations utilisaient des constantes fixes (ex: `dodgeX += 12 * pushStrength`), ce qui produisait des décalages de seulement 0.2 unité/frame — totalement invisibles. La solution retenue consiste à rendre les forces **proportionnelles à la vitesse de l'agent** (`speed * pushStrength * 0.6`), garantissant un décalage visible quelle que soit la vitesse de simulation.
+
+### 10.2. Symétrie de l'Esquive
+
+Une autre optimisation notable : l'esquive frontale est **symétrique**. Les deux agents esquivent vers leur droite respective simultanément. Puisqu'ils se font face, « la droite de l'un » est « la gauche de l'autre », ce qui garantit qu'ils s'écartent de directions opposées — exactement comme deux piétons se croisant dans un couloir étroit.
+
+### 10.3. Paramètres de Configuration
+
+| Paramètre | Valeur | Description |
+|---|---|---|
+| `COLLISION_DIST` | 75 | Rayon de détection de collision (unités de simulation) |
+| Seuil Head-on | `dot < -0.3` | Produit scalaire sous lequel la rencontre est considérée frontale |
+| Force d'esquive | `speed × 0.6` | Force latérale proportionnelle à la vitesse |
+| Seuil de répulsion | 20 unités | Distance sous laquelle la répulsion radiale s'active |
+| Distance idle | 25 unités | Distance minimale entre agents inactifs |
+| Distance parking | 30 unités | Distance minimale pour qu'un nœud soit considéré « libre » |
+
+---
+
+## 11. Conclusion et Perspectives
 
 Le **Digital Twin Warehouse** démontre la robustesse de l'écosystème React pour gérer de front une logique applicative exigeante et un rendu graphique 3D intensif, le tout hébergé directement dans un simple navigateur web. Le système algorithmique universel (Pathfinding A*, FSM, R-Trees abstraits) est assez flexible pour être adapté à d'autres industries complexes.
 
 L'ajout d'animations procédurales de type FlexSim et l'introduction d'un véritable tapis roulant texturé et fonctionnel poussent l'immersion technologique à son paroxysme sans dépendre d'outils propriétaires hors de prix, fournissant un excellent bac à sable logistique aux décideurs.
 
+Le système d'évitement de collisions apporte un niveau de réalisme supplémentaire à la simulation, reproduisant fidèlement le comportement d'opérateurs humains dans un entrepôt réel : esquive latérale dans les couloirs étroits, maintien de distances de sécurité, et stationnement intelligent en cas d'inactivité. Ces mécanismes, entièrement intégrés au moteur existant sans modification du pathfinding, démontrent la modularité et l'extensibilité de l'architecture choisie.
+
 **Fin du document.**
+
