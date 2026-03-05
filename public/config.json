@@ -427,56 +427,6 @@
             "y": 140
         },
         {
-            "id": "n_aisle_A_top",
-            "x": 80,
-            "y": 280
-        },
-        {
-            "id": "n_aisle_A_bot",
-            "x": 80,
-            "y": 520
-        },
-        {
-            "id": "n_aisle_B_top",
-            "x": 130,
-            "y": 280
-        },
-        {
-            "id": "n_aisle_B_bot",
-            "x": 130,
-            "y": 600
-        },
-        {
-            "id": "n_aisle_C_top",
-            "x": 180,
-            "y": 280
-        },
-        {
-            "id": "n_aisle_C_bot",
-            "x": 180,
-            "y": 520
-        },
-        {
-            "id": "n_aisle_D_top",
-            "x": 280,
-            "y": 280
-        },
-        {
-            "id": "n_aisle_D_bot",
-            "x": 280,
-            "y": 520
-        },
-        {
-            "id": "n_aisle_E_top",
-            "x": 380,
-            "y": 280
-        },
-        {
-            "id": "n_aisle_E_bot",
-            "x": 380,
-            "y": 600
-        },
-        {
             "id": "n_F_aisle_top",
             "x": 540,
             "y": 180
@@ -620,6 +570,61 @@
             "id": "n_bottom_hub",
             "x": 540,
             "y": 800
+        },
+        {
+            "id": "n_A_top",
+            "x": 80,
+            "y": 260
+        },
+        {
+            "id": "n_C_top",
+            "x": 170,
+            "y": 260
+        },
+        {
+            "id": "n_D_top",
+            "x": 270,
+            "y": 260
+        },
+        {
+            "id": "n_E_top",
+            "x": 465,
+            "y": 260
+        },
+        {
+            "id": "n_A_mid",
+            "x": 80,
+            "y": 520
+        },
+        {
+            "id": "n_C_mid",
+            "x": 170,
+            "y": 520
+        },
+        {
+            "id": "n_D_mid",
+            "x": 270,
+            "y": 520
+        },
+        {
+            "id": "n_E_mid",
+            "x": 465,
+            "y": 520
+        },
+        {
+            "id": "n_A_bot",
+            "x": 80,
+            "y": 620
+        },
+        {
+            "id": "n_D_bot",
+            "x": 270,
+            "y": 620
+        },
+        {
+            "id": "n_E_bot",
+            "x": 465,
+            "y": 620
         }
     ],
     "edges": [
@@ -664,76 +669,8 @@
             "n_top_corridor_2"
         ],
         [
-            "n_pilulier_right",
-            "n_aisle_E_top"
-        ],
-        [
-            "n_pilulier_left",
-            "n_aisle_A_top"
-        ],
-        [
             "n_conveyor",
             "n_shipping"
-        ],
-        [
-            "n_shipping",
-            "n_aisle_B_top"
-        ],
-        [
-            "n_aisle_A_top",
-            "n_aisle_A_bot"
-        ],
-        [
-            "n_aisle_A_top",
-            "n_aisle_B_top"
-        ],
-        [
-            "n_aisle_B_top",
-            "n_aisle_B_bot"
-        ],
-        [
-            "n_aisle_B_top",
-            "n_aisle_C_top"
-        ],
-        [
-            "n_aisle_C_top",
-            "n_aisle_C_bot"
-        ],
-        [
-            "n_aisle_C_top",
-            "n_aisle_D_top"
-        ],
-        [
-            "n_aisle_D_top",
-            "n_aisle_D_bot"
-        ],
-        [
-            "n_aisle_D_top",
-            "n_aisle_E_top"
-        ],
-        [
-            "n_aisle_E_top",
-            "n_aisle_E_bot"
-        ],
-        [
-            "n_aisle_A_bot",
-            "n_aisle_B_bot"
-        ],
-        [
-            "n_aisle_B_bot",
-            "n_aisle_C_bot"
-        ],
-        [
-            "n_aisle_C_bot",
-            "n_aisle_D_bot"
-        ],
-        [
-            "n_aisle_D_bot",
-            "n_aisle_E_bot"
-        ],
-        [
-            "n_aisle_E_bot",
-            "n_F_aisle_bot"
         ],
         [
             "n_F_aisle_top",
@@ -766,50 +703,6 @@
         [
             "n_F_aisle_bot",
             "n_bottom_hub"
-        ],
-        [
-            "n_Q_row",
-            "n_Q_row_end"
-        ],
-        [
-            "n_P_row",
-            "n_P_row_end"
-        ],
-        [
-            "n_O_row",
-            "n_O_row_end"
-        ],
-        [
-            "n_N_row",
-            "n_N_row_end"
-        ],
-        [
-            "n_M_row",
-            "n_M_row_end"
-        ],
-        [
-            "n_L_row",
-            "n_L_row_end"
-        ],
-        [
-            "n_K_row",
-            "n_K_row_end"
-        ],
-        [
-            "n_J_row",
-            "n_J_row_end"
-        ],
-        [
-            "n_I_row",
-            "n_I_row_end"
-        ],
-        [
-            "n_H_row",
-            "n_H_row_end"
-        ],
-        [
-            "n_G_row",
-            "n_G_row_end"
         ],
         [
             "n_F_aisle_top",
@@ -898,6 +791,82 @@
         [
             "n_right_aisle_bot",
             "n_G_row_end"
+        ],
+        [
+            "n_A_top",
+            "n_A_mid"
+        ],
+        [
+            "n_A_mid",
+            "n_A_bot"
+        ],
+        [
+            "n_C_top",
+            "n_C_mid"
+        ],
+        [
+            "n_D_top",
+            "n_D_mid"
+        ],
+        [
+            "n_D_mid",
+            "n_D_bot"
+        ],
+        [
+            "n_E_top",
+            "n_E_mid"
+        ],
+        [
+            "n_E_mid",
+            "n_E_bot"
+        ],
+        [
+            "n_A_top",
+            "n_C_top"
+        ],
+        [
+            "n_C_top",
+            "n_D_top"
+        ],
+        [
+            "n_D_top",
+            "n_E_top"
+        ],
+        [
+            "n_A_mid",
+            "n_C_mid"
+        ],
+        [
+            "n_C_mid",
+            "n_D_mid"
+        ],
+        [
+            "n_D_mid",
+            "n_E_mid"
+        ],
+        [
+            "n_A_bot",
+            "n_D_bot"
+        ],
+        [
+            "n_D_bot",
+            "n_E_bot"
+        ],
+        [
+            "n_pilulier_left",
+            "n_A_top"
+        ],
+        [
+            "n_shipping",
+            "n_A_top"
+        ],
+        [
+            "n_pilulier_right",
+            "n_E_top"
+        ],
+        [
+            "n_E_bot",
+            "n_F_aisle_bot"
         ]
     ]
 }
