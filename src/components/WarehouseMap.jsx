@@ -1200,7 +1200,7 @@ const SceneContent = ({ onHover, onUnhover, hoveredZoneId, hoveredZone, setToolt
                 <Conveyor3D key={zone.id} zone={zone} conveyorQueue={conveyorQueue} />
             ))}
 
-            {agents.map(agent => (
+            {agents.filter(a => !a.offDuty).map(agent => (
                 <AgentMesh key={agent.id} agent={agent} />
             ))}
 

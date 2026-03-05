@@ -4,21 +4,21 @@ const useWarehouseStore = create((set, get) => ({
     isPlaying: false,
     simulationSpeed: 1,
     agents: [
-        { id: 'M1', type: 'Storekeeper', x: 100, y: 650, state: 'idle' },
-        { id: 'M2', type: 'Storekeeper', x: 200, y: 400, state: 'idle' },
-        { id: 'M3', type: 'Storekeeper', x: 300, y: 500, state: 'idle' },
-        { id: 'P1', type: 'Picker', x: 800, y: 150, state: 'idle' },
-        { id: 'P2', type: 'Picker', x: 750, y: 400, state: 'idle' },
-        { id: 'P3', type: 'Picker', x: 900, y: 600, state: 'idle' },
+        { id: 'M1', type: 'Storekeeper', x: 100, y: 650, state: 'idle', shifts: { start1: 6, end1: 12, start2: 13, end2: 17 } },
+        { id: 'M2', type: 'Storekeeper', x: 200, y: 400, state: 'idle', shifts: { start1: 10, end1: 14, start2: 15, end2: 19 } },
+        { id: 'M3', type: 'Storekeeper', x: 300, y: 500, state: 'idle', shifts: { start1: 14, end1: 18, start2: 19, end2: 22 } },
+        { id: 'P1', type: 'Picker', x: 800, y: 150, state: 'idle', shifts: { start1: 6, end1: 12, start2: 13, end2: 17 } },
+        { id: 'P2', type: 'Picker', x: 750, y: 400, state: 'idle', shifts: { start1: 10, end1: 14, start2: 15, end2: 19 } },
+        { id: 'P3', type: 'Picker', x: 900, y: 600, state: 'idle', shifts: { start1: 14, end1: 18, start2: 19, end2: 22 } },
         { id: 'C1', type: 'Controller', x: 250, y: 120, state: 'idle' }
     ],
     initialAgents: [
-        { id: 'M1', type: 'Storekeeper', x: 100, y: 650, state: 'idle' },
-        { id: 'M2', type: 'Storekeeper', x: 200, y: 400, state: 'idle' },
-        { id: 'M3', type: 'Storekeeper', x: 300, y: 500, state: 'idle' },
-        { id: 'P1', type: 'Picker', x: 800, y: 150, state: 'idle' },
-        { id: 'P2', type: 'Picker', x: 750, y: 400, state: 'idle' },
-        { id: 'P3', type: 'Picker', x: 900, y: 600, state: 'idle' },
+        { id: 'M1', type: 'Storekeeper', x: 100, y: 650, state: 'idle', shifts: { start1: 6, end1: 12, start2: 13, end2: 17 } },
+        { id: 'M2', type: 'Storekeeper', x: 200, y: 400, state: 'idle', shifts: { start1: 10, end1: 14, start2: 15, end2: 19 } },
+        { id: 'M3', type: 'Storekeeper', x: 300, y: 500, state: 'idle', shifts: { start1: 14, end1: 18, start2: 19, end2: 22 } },
+        { id: 'P1', type: 'Picker', x: 800, y: 150, state: 'idle', shifts: { start1: 6, end1: 12, start2: 13, end2: 17 } },
+        { id: 'P2', type: 'Picker', x: 750, y: 400, state: 'idle', shifts: { start1: 10, end1: 14, start2: 15, end2: 19 } },
+        { id: 'P3', type: 'Picker', x: 900, y: 600, state: 'idle', shifts: { start1: 14, end1: 18, start2: 19, end2: 22 } },
         { id: 'C1', type: 'Controller', x: 250, y: 120, state: 'idle' }
     ],
     orders: [],
@@ -70,6 +70,10 @@ const useWarehouseStore = create((set, get) => ({
     togglePlay: () => set((state) => ({ isPlaying: !state.isPlaying })),
     setSpeed: (speed) => set({ simulationSpeed: speed }),
     updateAgents: (agents) => set({ agents }),
+    updateAgentShifts: (id, newShifts) => set((state) => ({
+        agents: state.agents.map(a => a.id === id ? { ...a, shifts: newShifts } : a),
+        initialAgents: state.initialAgents.map(a => a.id === id ? { ...a, shifts: newShifts } : a)
+    })),
     updateConveyorQueue: (queue) => set({ conveyorQueue: queue }),
     updateMetrics: (newMetrics) => set((state) => ({
         metrics: { ...state.metrics, ...newMetrics }

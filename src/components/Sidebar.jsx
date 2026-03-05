@@ -1,9 +1,10 @@
 import React, { useRef, useState } from 'react';
 import useWarehouseStore from '../store/useWarehouseStore';
-import { Play, Pause, Upload, List, Plus, Settings, Shuffle, FlaskConical } from 'lucide-react';
+import { Play, Pause, Upload, List, Plus, Settings, Shuffle, FlaskConical, Clock } from 'lucide-react';
 import { parseExcelOrders } from '../utils/ExcelImporter';
 import OrderList from './OrderList';
 import ArrivalsModal from './ArrivalsModal';
+import ShiftsModal from './ShiftsModal';
 import ScenariosPanel from './ScenariosPanel';
 
 const Sidebar = () => {
@@ -12,6 +13,7 @@ const Sidebar = () => {
     const [showOrderList, setShowOrderList] = useState(false);
     const [showArrivalsConfig, setShowArrivalsConfig] = useState(false);
     const [showScenarios, setShowScenarios] = useState(false);
+    const [showShifts, setShowShifts] = useState(false);
 
     const handleFileUpload = async (e) => {
         const file = e.target.files[0];
@@ -124,6 +126,18 @@ const Sidebar = () => {
                     </button>
                 </div>
 
+                {/* Shifts Button */}
+                <div className="flex flex-col items-center space-y-1">
+                    <span className="text-xs text-gray-400">Shifts</span>
+                    <button
+                        onClick={() => setShowShifts(true)}
+                        className="p-2 hover:bg-slate-700 rounded transition text-amber-400"
+                        title="Configurer les Horaires (Shifts)"
+                    >
+                        <Clock size={24} />
+                    </button>
+                </div>
+
                 <div className="flex flex-col items-center space-y-1">
                     <span className="text-xs text-gray-400">Freq.</span>
                     <input
@@ -167,6 +181,7 @@ const Sidebar = () => {
             {showOrderList && <OrderList onClose={() => setShowOrderList(false)} />}
             {showArrivalsConfig && <ArrivalsModal isOpen={showArrivalsConfig} onClose={() => setShowArrivalsConfig(false)} />}
             {showScenarios && <ScenariosPanel isOpen={showScenarios} onClose={() => setShowScenarios(false)} />}
+            {showShifts && <ShiftsModal isOpen={showShifts} onClose={() => setShowShifts(false)} />}
         </>
     );
 };

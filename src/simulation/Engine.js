@@ -279,6 +279,62 @@ export class Engine {
         const scenarioActive = this.config.parameters?.scenarioActive;
         const controlTimerBase = scenarioActive === 'slow_control' ? 6 : 3;
 
+        // --- SHIFT LOGIC ---
+        if (agent.shifts) {
+            const currentHour = this.simulationTime % 24;
+
+            // Helper to check if a specific block (start -> end) contains the current hour
+            // Handles wrapping (e.g. 22h to 04h) if start > end
+            const isInsideBlock = (h, s, e) => {
+                if (s <= e) return h >= s && h < e;
+                return h >= s || h < e; // Wraps around midnight
+            };
+
+            const s = agent.shifts;
+            const isWorking = isInsideBlock(currentHour, s.start1, s.end1) ||
+                isInsideBlock(currentHour, s.start2, s.end2);
+            const isOffHours = !isWorking;
+
+            // Save original spawn position
+            if (agent.spawnX === undefined) {
+                agent.spawnX = agent.x;
+                agent.spawnY = agent.y;
+            }
+
+            if (agent.offDuty) {
+                if (!isOffHours) {
+                    agent.offDuty = false;
+                    agent.state = 'idle';
+                    agent.x = agent.spawnX;
+                    agent.y = agent.spawnY;
+                } else {
+                    return; // Skip behavior while off duty
+                }
+            } else if (isOffHours) {
+                if (agent.state === 'idle') {
+                    agent.state = 'leaving';
+                    const exitNode = this.findNearestNode(1050, 50); // Near reception setup
+                    const startNode = this.findNearestNode(agent.x, agent.y);
+                    if (exitNode && startNode) {
+                        const path = this.findPath(startNode, exitNode);
+                        if (path && path.length > 0) {
+                            agent.path = path;
+                            agent.pathIndex = 0;
+                            agent.targetNode = path[0];
+                        } else {
+                            agent.offDuty = true;
+                        }
+                    } else {
+                        agent.offDuty = true;
+                    }
+                    return;
+                } else if (agent.state === 'leaving') {
+                    // Let agent walk to exit
+                }
+                // If busy, they will finish their task, become idle, and then leave
+            }
+        }
+
         if (agent.state === 'idle') {
             // --- Idle collision: if too close to another agent, move to a nearby free node ---
             const tooClose = this.agents.find(other =>
@@ -566,6 +622,9 @@ export class Engine {
 
             } else if (agent.state === 'relocating') {
                 agent.state = 'idle';
+            } else if (agent.state === 'leaving') {
+                agent.offDuty = true;
+                agent.state = 'idle';
             } else {
                 agent.state = 'idle';
             }
@@ -675,7 +734,7 @@ export class Engine {
             const hdx = dx / headLen, hdy = dy / headLen;
 
             for (const other of this.agents) {
-                if (other.id === agent.id) continue;
+                if (other.id === agent.id || other.offDuty) continue;
                 const sepX = other.x - agent.x;
                 const sepY = other.y - agent.y;
                 const sepDist = Math.sqrt(sepX * sepX + sepY * sepY);

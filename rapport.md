@@ -379,6 +379,31 @@ Le picking est la tâche la plus complexe. Quand un picker arrive à la zone de 
 4. **Fin du picking** : le stock de la zone est décrémenté de `quantity`, l'agent porte la totalité
 5. **Livraison** : l'agent se dirige vers le convoyeur et dépose un colis coloré aléatoirement
 
+### 7.6. Planification et Quarts de Travail (Shifts)
+
+Les agents `Storekeeper` et `Picker` suivent des horaires de travail quotidiens (shifts) pour assurer une couverture optimale tout en simulant des équipes tournantes, avec prise en charge des **pauses (Split Shifts)** et des **quarts de nuit**. Le `Controller` n'est pas soumis à cette limite afin d'assurer l'expédition en continu (24/7).
+
+Chaque agent dispose de **deux blocs de travail** configurables (ex: Matin + Après-midi, avec une pause déjeuner au milieu). 
+
+| Type d'Horaire | Exemple de Configuration (Bloc 1 + Bloc 2) |
+|---|---|
+| **Journée standard** | 06h00 — 12h00 & 13h00 — 17h00 |
+| **Soirée** | 14h00 — 18h00 & 19h00 — 22h00 |
+| **Quart de Nuit** | 22h00 — 04h00 & 05h00 — 08h00 |
+
+**Mécanique de fin de service** : 
+1. Quand l'heure de fin d'un bloc est atteinte, l'agent ne disparaît **pas** immédiatement.
+2. Il termine son action en cours (ex: livraison d'une commande).
+3. Une fois `idle`, il passe en état transitoire `leaving` et navigue vers la **sortie** (zone de réception, nœud principal).
+4. À son arrivée, il passe en mode `offDuty` (invisible dans le rendu 3D et inactif dans l'Engine).
+5. Il réapparaît et reprend le travail automatiquement au début de son prochain bloc.
+
+**Interface de Contrôle Avancée (UI)** :
+Les horaires de rotation peuvent être modifiés en temps réel via le bouton **"Shifts" (icône Horloge)** dans la barre latérale. La modale interactive propose :
+- 4 curseurs (sliders) par agent permettant de régler le début et la fin de chaque bloc.
+- Une **Timeline sur 24h** visuelle interactive qui affiche les périodes travaillées (couleurs) et les temps de pause/repos (gris).
+- Une détection automatique du franchissement de minuit (si Fin < Début), activant nativement le travail de nuit.
+
 ---
 
 ## 8. Algorithme de Pathfinding (A*)
